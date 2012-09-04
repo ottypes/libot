@@ -17,6 +17,44 @@
 #include <assert.h>
 #include "text-composable.h"
 
+static text_op *ensure_capacity(text_op *op) {
+  if (op->num_components == op->capacity) {
+    op->capacity *= 2;
+    op = realloc(op, sizeof(text_op) * op->capacity * sizeof(text_op_component));
+  }
+  return op;
+}
+
+static text_op *append(text_op *op, text_op_component c) {
+  if (c.type == NONE
+      || ((c.type == SKIP || c.type == DELETE) && c.num == 0)
+      || (c.type == INSERT && !c.str.mem && c.str.chars[0] == '\0')) {
+    // We're not inserting any actual data. Skip.
+    return op;
+  } else if (op->num_components == 0) {
+    // The list is empty. Create a new node.
+    op = ensure_capacity(op);
+    op->components[0] = c;
+    op->num_components++;
+  } else {
+    text_op_component *lastC = &op->components[op->num_components - 1];
+    if (lastC->type == c.type) {
+      if (lastC->type == DELETE || lastC->type == SKIP) {
+        // Extend the delete / skip component.
+        lastC->num += c.num;
+      } else {
+        // Extend the insert component.
+        str_append(&lastC->str, &c.str);
+      }
+    } else {
+      op = ensure_capacity(op);
+      op->components[op->num_components++] = c;
+    }
+  }
+  
+  return op;
+}
+
 text_op *text_op_create() {
   text_op *op = (text_op *)malloc(sizeof(text_op) + sizeof(text_op_component) * 3);
   op->capacity = 3;
@@ -35,9 +73,11 @@ void text_op_free(text_op *op) {
 
 text_op *text_op_from_components(text_op_component components[], size_t num) {
   text_op *op = (text_op *)malloc(sizeof(text_op) + sizeof(text_op_component) * num);
-  op->capacity = op->num_components = num;
+  op->capacity = num;
+  op->num_components = 0;
+  
   for (int i = 0; i < num; i++) {
-    op->components[i] = components[i];
+    append(op, components[i]);
   }
   return op;
 }
@@ -87,14 +127,6 @@ typedef struct {
   size_t offset;
 } op_iter;
 
-static text_op *ensure_capacity(text_op *op) {
-  if (op->num_components == op->capacity) {
-    op->capacity *= 2;
-    op = realloc(op, sizeof(text_op) * op->capacity * sizeof(text_op_component));
-  }
-  return op;
-}
-
 #define MIN(x,y) ((x) > (y) ? (y) : (x))
 
 static text_op_component take(text_op *op, op_iter *iter, size_t max_len, component_type indivisible_type) {
@@ -134,36 +166,6 @@ static text_op_component take(text_op *op, op_iter *iter, size_t max_len, compon
   }
 
   return e;
-}
-
-static text_op *append(text_op *op, text_op_component c) {
-  if (c.type == NONE
-      || ((c.type == SKIP || c.type == DELETE) && c.num == 0)
-      || (c.type == INSERT && !c.str.mem && c.str.num_chars == 0)) {
-    // We're not inserting any actual data. Skip.
-    return op;
-  } else if (op->num_components == 0) {
-    // The list is empty. Create a new node.
-    op = ensure_capacity(op);
-    op->components[0] = c;
-    op->num_components++;
-  } else {
-    text_op_component *lastC = &op->components[op->num_components - 1];
-    if (lastC->type == c.type) {
-      if (lastC->type == DELETE || lastC->type == SKIP) {
-        // Extend the delete / skip component.
-        lastC->num += c.num;
-      } else {
-        // Extend the insert component.
-        str_append(&lastC->str, &c.str);
-      }
-    } else {
-      op = ensure_capacity(op);
-      op->components[op->num_components++] = c;
-    }
-  }
-  
-  return op;
 }
 
 text_op *text_op_transform(text_op *op, text_op *other, bool isLefthand) {

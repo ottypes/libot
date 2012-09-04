@@ -82,7 +82,7 @@ static void _append(str *s, const uint8_t *other, size_t other_bytes, size_t oth
 }
 
 void str_append(str *s, const str *other) {
-  _append(s, str_content(other), str_num_bytes(s), str_num_chars(s));
+  _append(s, str_content(other), str_num_bytes(other), str_num_chars(other));
 }
 
 void str_append2(str *s, const uint8_t *other) {
