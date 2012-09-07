@@ -20,6 +20,7 @@ void sanity() {
   free(str);
   
   text_op_free(op);
+  rope_free(doc);
 }
 
 
@@ -105,7 +106,7 @@ text_op *random_op(rope *doc) {
 }
 
 void random_op_test() {
-//  srandom(1);
+  srandom(1);
   rope *doc = rope_new();
   for (int i = 0; i < 100000; i++) {
     text_op *op1 = random_op(doc);
@@ -128,9 +129,16 @@ void random_op_test() {
     uint8_t *doc2_str = rope_createcstr(doc2, NULL);
     
     assert(strcmp((char *)doc1_str, (char *)doc2_str) == 0);
+    free(doc1_str);
+    free(doc2_str);
     
     rope_free(doc2);
+    text_op_free(op1);
+    text_op_free(op2);
+    text_op_free(op1_);
+    text_op_free(op2_);
   }
+  rope_free(doc);
 }
 
 int main() {
