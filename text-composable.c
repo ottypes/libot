@@ -20,9 +20,19 @@
 static text_op *ensure_capacity(text_op *op) {
   if (op->num_components == op->capacity) {
     op->capacity *= 2;
-    op = realloc(op, sizeof(text_op) * op->capacity * sizeof(text_op_component));
+    op = realloc(op, sizeof(text_op) + op->capacity * sizeof(text_op_component));
   }
   return op;
+}
+
+static text_op_component copy_component(const text_op_component old) {
+  if (old.type != INSERT) {
+    return old;
+  } else {
+    text_op_component c = {INSERT};
+    str_init_with_copy(&c.str, &old.str);
+    return c;
+  }
 }
 
 static text_op *append(text_op *op, text_op_component c) {
@@ -34,7 +44,7 @@ static text_op *append(text_op *op, text_op_component c) {
   } else if (op->num_components == 0) {
     // The list is empty. Create a new node.
     op = ensure_capacity(op);
-    op->components[0] = c;
+    op->components[0] = copy_component(c);
     op->num_components++;
   } else {
     text_op_component *lastC = &op->components[op->num_components - 1];
@@ -48,7 +58,7 @@ static text_op *append(text_op *op, text_op_component c) {
       }
     } else {
       op = ensure_capacity(op);
-      op->components[op->num_components++] = c;
+      op->components[op->num_components++] = copy_component(c);
     }
   }
   
@@ -77,7 +87,7 @@ text_op *text_op_from_components(text_op_component components[], size_t num) {
   op->num_components = 0;
   
   for (int i = 0; i < num; i++) {
-    append(op, components[i]);
+    op = append(op, components[i]);
   }
   return op;
 }
@@ -147,10 +157,10 @@ static text_op_component take(text_op *op, op_iter *iter, size_t max_len, compon
   if (e.type == INSERT) {
     if (max_len < length) {
       str_init_with_substring(&e.str, &op->components[iter->idx].str, iter->offset, max_len);
-      if (max_len + iter->offset == length) {
-        // This is the last part of the string we're taking. Free it.
-        str_destroy(&op->components[iter->idx].str);
-      }
+//      if (max_len + iter->offset == length) {
+//        // This is the last part of the string we're taking. Free it.
+//        str_destroy(&op->components[iter->idx].str);
+//      }
     }
   } else {
     e.num = max_len;
@@ -180,6 +190,9 @@ text_op *text_op_transform(text_op *op, text_op *other, bool isLefthand) {
         
         while (num > 0) {
           text_op_component c = take(op, &iter, num, INSERT);
+          if (c.type == NONE) {
+            break;
+          }
           result = append(result, c);
           if (c.type != INSERT) {
             num -= c.num;
@@ -195,7 +208,7 @@ text_op *text_op_transform(text_op *op, text_op *other, bool isLefthand) {
           result = append(result, take(op, &iter, SIZE_MAX, NONE));
         }
         text_op_component skip = {SKIP};
-        skip.num = other->components[i].num;
+        skip.num = str_num_chars(&other->components[i].str);
         result = append(result, skip);
         break;
       }
@@ -206,6 +219,9 @@ text_op *text_op_transform(text_op *op, text_op *other, bool isLefthand) {
           text_op_component c = take(op, &iter, num, INSERT);
           
           switch (c.type) {
+            case NONE:
+              num = 0;
+              break;
             case SKIP:
               num -= c.num;
               break;
@@ -216,8 +232,6 @@ text_op *text_op_transform(text_op *op, text_op *other, bool isLefthand) {
               // The delete is unnecessary now.
               num -= c.num;
               break;
-            default:
-              assert(0);
           }
         }
         break;
@@ -232,7 +246,7 @@ text_op *text_op_transform(text_op *op, text_op *other, bool isLefthand) {
     result = append(result, take(op, &iter, SIZE_MAX, NONE));
   }
   
-  free(op);
+  //free(op);
   return result;
 }
 
@@ -247,7 +261,7 @@ text_op *text_op_compose(text_op *op1, text_op *op2) {
         
         while (num > 0) {
           text_op_component c = take(op1, &iter, num, DELETE);
-          append(result, c);
+          result = append(result, c);
           if (c.type != DELETE) {
             num -= component_length(&c);
           }
@@ -255,7 +269,7 @@ text_op *text_op_compose(text_op *op1, text_op *op2) {
         break;
       }
       case INSERT:
-        append(result, op2->components[i]);
+        result = append(result, op2->components[i]);
         break;
       case DELETE: {
         size_t offset = 0;
@@ -268,7 +282,7 @@ text_op *text_op_compose(text_op *op1, text_op *op2) {
           switch (c.type) {
             case SKIP: {
               c.type = DELETE;
-              append(result, c);
+              result = append(result, c);
               offset += c.num;
               break;
             }
@@ -277,7 +291,7 @@ text_op *text_op_compose(text_op *op1, text_op *op2) {
               offset += str_num_chars(&c.str);
               break;
             case DELETE:
-              append(result, c);
+              result = append(result, c);
               break;
             default:
               assert(0);
@@ -292,11 +306,11 @@ text_op *text_op_compose(text_op *op1, text_op *op2) {
   
   while (iter.idx < op1->num_components) {
     // The op doesn't have skips at the end. Just copy everything.
-    append(result, take(op1, &iter, SIZE_MAX, NONE));
+    result = append(result, take(op1, &iter, SIZE_MAX, NONE));
   }
   
-  free(op1);
-  free(op2);
+//  free(op1);
+//  free(op2);
   
   return result;
 }
@@ -367,6 +381,7 @@ int text_op_apply(text_doc *doc, text_op *op) {
         break;
       case INSERT:
         rope_insert(doc, pos, str_content(&op->components[i].str));
+        pos += str_num_chars(&op->components[i].str);
         break;
       case DELETE:
         rope_del(doc, pos, op->components[i].num);

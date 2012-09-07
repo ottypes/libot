@@ -109,11 +109,27 @@ void random_op_test() {
   rope *doc = rope_new();
   for (int i = 0; i < 100000; i++) {
     text_op *op1 = random_op(doc);
-//    text_op *op2 = random_op(doc);
+    text_op *op2 = random_op(doc);
     
     assert(text_op_check(doc, op1) == 0);
     
+    text_op *op1_ = text_op_transform(op1, op2, true);
+    text_op *op2_ = text_op_transform(op2, op1, false);
+    
+    rope *doc2 = rope_copy(doc);
+
     text_op_apply(doc, op1);
+    text_op_apply(doc, op2_);
+    
+    text_op_apply(doc2, op2);
+    text_op_apply(doc2, op1_);
+    
+    uint8_t *doc1_str = rope_createcstr(doc, NULL);
+    uint8_t *doc2_str = rope_createcstr(doc2, NULL);
+    
+    assert(strcmp((char *)doc1_str, (char *)doc2_str) == 0);
+    
+    rope_free(doc2);
   }
 }
 

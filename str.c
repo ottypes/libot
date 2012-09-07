@@ -33,6 +33,14 @@ void str_init3(str *s, const uint8_t *content, size_t num_bytes, size_t num_char
   }
 }
 
+void str_init_with_copy(str *dest, const str *src) {
+  if (src->mem) {
+    str_init3(dest, src->mem, src->num_bytes, src->num_chars);
+  } else {
+    *dest = *src;
+  }
+}
+
 void str_init_with_substring(str *s, str *other, size_t start, size_t length) {
   // Count out bytes.
   size_t other_len = str_num_chars(other);
