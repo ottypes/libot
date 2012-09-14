@@ -72,6 +72,16 @@ text_op *text_op_create() {
   return op;
 }
 
+text_op *text_op_clone(text_op *orig) {
+  size_t num = orig->num_components;
+  text_op *op = (text_op *)malloc(sizeof(text_op) + sizeof(text_op_component) * num);
+  op->capacity = op->num_components = num;
+  for (int i = 0; i < num; i++) {
+    op->components[i] = copy_component(orig->components[i]);
+  }
+  return op;
+}
+
 void text_op_free(text_op *op) {
   for (int i = 0; i < op->num_components; i++) {
     if (op->components[i].type == INSERT) {

@@ -58,6 +58,8 @@ text_op *text_op_create();
 void text_op_free(text_op *op);
 text_op *text_op_from_components(text_op_component components[], size_t num);
 
+text_op *text_op_clone(text_op *orig);
+
 void text_op_print(text_op *op);
 
 // returns 0 on success, nonzero on failure.
