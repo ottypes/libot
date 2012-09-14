@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <assert.h>
 #include "text-composable.h"
 
@@ -141,9 +142,128 @@ void random_op_test() {
   rope_free(doc);
 }
 
+void benchmark_apply() {
+  printf("Benchmarking...\n");
+  
+  long iterations = 20000000;
+  //  long iterations = 1000000;
+  
+  struct timeval start, end;
+  
+  // Make the test stable
+  srandom(1234);
+  
+  int doclens[] = {100, 1000, 10000, 100000, 1000000};
+
+  for (int dl = 0; dl < sizeof(doclens) / sizeof(doclens[0]); dl++) {
+    int doclen = doclens[dl];
+    
+    rope *doc = rope_new();
+    for (int i = 0; i < doclen; i++) {
+      rope_insert(doc, 0, (uint8_t *)"a");
+    }
+
+    text_op *ops[1000];
+    for (int i = 0; i < 1000; i++) {
+      text_op_component c[2] = {{SKIP}};
+      c[0].num = random() % doclen + 1;
+      
+      if (i % 2) {
+        c[1].type = INSERT;
+        str_init2(&c[1].str, (uint8_t *)"x");
+      } else {
+        c[1].type = DELETE;
+        c[1].num = 1;
+      }
+      ops[i] = text_op_from_components(c, 2);
+    }
+    
+    for (int t = 0; t < 1; t++) {
+      printf("run %d\n", t);
+      gettimeofday(&start, NULL);
+      
+      for (long i = 0; i < iterations; i++) {
+        text_op_apply(doc, ops[i % 1000]);
+      }
+      
+      gettimeofday(&end, NULL);
+      
+      double elapsedTime = end.tv_sec - start.tv_sec;
+      elapsedTime += (end.tv_usec - start.tv_usec) / 1e6;
+      printf("dl %d did %ld iterations in %f ms: %f Miter/sec\n",
+             doclen, iterations, elapsedTime * 1000, iterations / elapsedTime / 1000000);
+    }
+    
+    for (int i = 0; i < 1000; i++) {
+      text_op_free(ops[i]);
+    }
+    rope_free(doc);
+  }
+}
+
+void benchmark_transform() {
+  printf("Benchmarking...\n");
+  
+  long iterations = 20000000;
+  
+  struct timeval start, end;
+  
+  // Make the test stable
+  srandom(1234);
+  
+  int doclen = 10000;
+  
+  text_op *ops[1000];
+  for (int i = 0; i < 1000; i++) {
+    text_op_component c[2] = {{SKIP}};
+    c[0].num = random() % doclen + 1;
+    
+    if (i % 2) {
+      c[1].type = INSERT;
+      str_init2(&c[1].str, (uint8_t *)"x");
+    } else {
+      c[1].type = DELETE;
+      c[1].num = 1;
+    }
+    ops[i] = text_op_from_components(c, 2);
+  }
+
+  text_op_component c[2] = {{SKIP}, {DELETE}};
+  c[0].num = doclen / 2;
+  c[1].num = 1;
+  text_op *op = text_op_from_components(c, 2);
+  
+  
+  for (int t = 0; t < 4; t++) {
+    gettimeofday(&start, NULL);
+
+    for (long i = 0; i < iterations; i++) {
+      text_op *op_ = text_op_transform(op, ops[i % 1000], true);
+      text_op_free(op);
+      op = op_;
+    }
+  
+    printf("run %d\n", t);
+    gettimeofday(&end, NULL);
+  
+    double elapsedTime = end.tv_sec - start.tv_sec;
+    elapsedTime += (end.tv_usec - start.tv_usec) / 1e6;
+    printf("dl %d did %ld iterations in %f ms: %f Miter/sec\n",
+           doclen, iterations, elapsedTime * 1000, iterations / elapsedTime / 1000000);
+  }
+
+  for (int i = 0; i < 1000; i++) {
+    text_op_free(ops[i]);
+  }
+  text_op_free(op);
+}
+
+
 int main() {
   sanity();
   random_op_test();
+  //benchmark_apply();
   
+  benchmark_transform();
   return 0;
 }
