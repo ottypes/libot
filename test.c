@@ -143,7 +143,7 @@ void random_op_test() {
 }
 
 void benchmark_apply() {
-  printf("Benchmarking...\n");
+  printf("Benchmarking apply...\n");
   
   long iterations = 20000000;
   //  long iterations = 1000000;
@@ -179,7 +179,7 @@ void benchmark_apply() {
     }
     
     for (int t = 0; t < 1; t++) {
-      printf("run %d\n", t);
+      printf("doclen %d run %d\n", doclen, t);
       gettimeofday(&start, NULL);
       
       for (long i = 0; i < iterations; i++) {
@@ -190,11 +190,11 @@ void benchmark_apply() {
       
       double elapsedTime = end.tv_sec - start.tv_sec;
       elapsedTime += (end.tv_usec - start.tv_usec) / 1e6;
-      printf("dl %d did %ld iterations in %f ms: %f Miter/sec\n",
-             doclen, iterations, elapsedTime * 1000, iterations / elapsedTime / 1000000);
+      printf("%ld iterations in %f ms: %f Miter/sec\n",
+             iterations, elapsedTime * 1000, iterations / elapsedTime / 1000000);
     }
     
-    for (int i = 0; i < 1000; i++) {
+    for (unsigned int i = 0; i < 1000; i++) {
       text_op_free(ops[i]);
     }
     rope_free(doc);
@@ -202,7 +202,7 @@ void benchmark_apply() {
 }
 
 void benchmark_transform() {
-  printf("Benchmarking...\n");
+  printf("Benchmarking transform...\n");
   
   long iterations = 20000000;
   
@@ -234,7 +234,7 @@ void benchmark_transform() {
   text_op *op = text_op_from_components(c, 2);
   
   
-  for (int t = 0; t < 4; t++) {
+  for (int t = 0; t < 2; t++) {
     gettimeofday(&start, NULL);
 
     for (long i = 0; i < iterations; i++) {
@@ -262,7 +262,7 @@ void benchmark_transform() {
 int main() {
   sanity();
   random_op_test();
-  //benchmark_apply();
+  benchmark_apply();
   
   benchmark_transform();
   return 0;
