@@ -33,7 +33,7 @@ void left_hand_inserts() {
   assert(ins1_.skip == 103);
   
   text_op ins2_ = text_op_transform(&ins2, &ins1, true);
-  //assert(ins2_.skip == 100);
+  assert(ins2_.skip == 100);
 //  assert(ins2_.components[0].num == 100);
 }
 
@@ -119,7 +119,7 @@ void random_op(text_op *dest, rope *doc) {
 }
 
 void random_op_test() {
-  srandom(1);
+  srandom(2);
   rope *doc = rope_new();
   for (int i = 0; i < 100000; i++) {
     text_op op1;
@@ -142,25 +142,57 @@ void random_op_test() {
 //    text_op_print(&op2_);
     
     rope *doc2 = rope_copy(doc);
-
+    rope *doc3 = rope_copy(doc);
+    rope *doc4 = rope_copy(doc);
+    
     text_op_apply(doc, &op1);
+    assert(text_op_check(doc, &op2_) == 0);
     text_op_apply(doc, &op2_);
     
     text_op_apply(doc2, &op2);
+    assert(text_op_check(doc2, &op1_) == 0);
     text_op_apply(doc2, &op1_);
     
     uint8_t *doc1_str = rope_createcstr(doc, NULL);
     uint8_t *doc2_str = rope_createcstr(doc2, NULL);
     
     assert(strcmp((char *)doc1_str, (char *)doc2_str) == 0);
+    
+    // Compose
+    
+    text_op op12 = text_op_compose(&op1, &op2_);
+    assert(text_op_check(doc3, &op12) == 0);
+    text_op op21 = text_op_compose(&op2, &op1_);
+    assert(text_op_check(doc4, &op21) == 0);
+
+//    printf("\n---- composed ops\n");
+//    text_op_print(&op12);
+//    text_op_print(&op21);
+    
+    text_op_apply(doc3, &op12);
+    text_op_apply(doc4, &op21);
+
+    uint8_t *doc3_str = rope_createcstr(doc3, NULL);
+    uint8_t *doc4_str = rope_createcstr(doc4, NULL);
+    
+    assert(strcmp((char *)doc3_str, (char *)doc4_str) == 0);
+    assert(strcmp((char *)doc1_str, (char *)doc3_str) == 0);
+    
     free(doc1_str);
     free(doc2_str);
+    free(doc3_str);
+    free(doc4_str);
     
     rope_free(doc2);
+    rope_free(doc3);
+    rope_free(doc4);
+    
     text_op_free(&op1);
     text_op_free(&op2);
     text_op_free(&op1_);
     text_op_free(&op2_);
+    text_op_free(&op12);
+    text_op_free(&op21);
   }
   rope_free(doc);
 }
@@ -288,7 +320,7 @@ int main() {
   left_hand_inserts();
   random_op_test();
   
-//  benchmark_apply();
+  benchmark_apply();
   benchmark_transform();
   return 0;
 }
