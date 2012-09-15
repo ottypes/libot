@@ -1,15 +1,6 @@
-/*
- * Ops are lists of components which iterate over the document.
+/* Implementation of the text-composable OT type.
  *
- * Components are either:
- *
- * A number N: Skip N characters in the original document
- * {INSERT, 'str'}: Insert 'str' at the current position in the document
- * {DELETE, N}:     Delete N characters at the current pos
- *
- * Eg: [3, {INSERT, 'hi'}, 5, {DELETE, 9}]
- *
- * Snapshots are strings.
+ * See header file.
  */
 
 #include <stdlib.h>
@@ -103,7 +94,7 @@ static void append(text_op *op, const text_op_component c) {
   }
 }
 
-void text_op_clone(text_op *dest, text_op *src) {
+void text_op_clone2(text_op *dest, text_op *src) {
   if (src->components) {
     size_t num = src->num_components;
     dest->components = malloc(sizeof(text_op_component) * num);
@@ -162,7 +153,7 @@ static size_t component_length(const text_op_component *c) {
   }
 }
 
-void text_op_from_components(text_op *dest, text_op_component components[], size_t num) {
+void text_op_from_components2(text_op *dest, text_op_component components[], size_t num) {
   // Consider rewriting this to take advantage of knowing num - we could probably pick a pretty
   // good initial capacity for the op.
   dest->components = NULL;
@@ -475,7 +466,7 @@ void text_op_compose2(text_op *result, text_op *op1, text_op *op2) {
 }
 
 
-int text_op_check(text_doc *doc, text_op *op) {
+int text_op_check(rope *doc, text_op *op) {
   size_t doc_length = rope_char_count(doc);
   size_t pos = 0;
   
@@ -544,7 +535,7 @@ int text_op_check(text_doc *doc, text_op *op) {
   return 0;
 }
 
-int text_op_apply(text_doc *doc, text_op *op) {
+int text_op_apply(rope *doc, text_op *op) {
 #ifdef DEBUG
   if (text_op_check(doc, op)) {
     return 1;

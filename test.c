@@ -9,10 +9,9 @@
 void sanity() {
   text_op_component insert = {INSERT};
   str_init2(&insert.str, (uint8_t *)"hi there");
-  text_op op;
-  text_op_from_components(&op, &insert, 1);
+  text_op op = text_op_from_components(&insert, 1);
   
-  text_doc *doc = rope_new();
+  rope *doc = rope_new();
   text_op_apply(doc, &op);
   
   uint8_t *str = rope_createcstr(doc, NULL);
@@ -76,7 +75,7 @@ static float rand_float() {
   return (float)random() / INT32_MAX;
 }
 
-void random_op(text_op *dest, rope *doc) {
+text_op random_op(rope *doc) {
   uint8_t buffer[100];
   
   size_t remaining_chars = rope_char_count(doc);
@@ -115,17 +114,15 @@ void random_op(text_op *dest, rope *doc) {
     
     p *= 0.4;
   }
-  text_op_from_components(dest, components, num_components);
+  return text_op_from_components(components, num_components);
 }
 
 void random_op_test() {
   srandom(2);
   rope *doc = rope_new();
   for (int i = 0; i < 100000; i++) {
-    text_op op1;
-    random_op(&op1, doc);
-    text_op op2;
-    random_op(&op2, doc);
+    text_op op1 = random_op(doc);
+    text_op op2 = random_op(doc);
     
 //    printf("\n---- ops\n");
 //    text_op_print(&op1);
@@ -230,7 +227,7 @@ void benchmark_apply() {
         c[1].type = DELETE;
         c[1].num = 1;
       }
-      text_op_from_components(&ops[i], c, 2);
+      text_op_from_components2(&ops[i], c, 2);
     }
     
     for (int t = 0; t < 1; t++) {
@@ -280,15 +277,13 @@ void benchmark_transform() {
       c[1].type = DELETE;
       c[1].num = 1;
     }
-    text_op_from_components(&ops[i], c, 2);
+    text_op_from_components2(&ops[i], c, 2);
   }
 
   text_op_component c[2] = {{SKIP}, {DELETE}};
   c[0].num = doclen / 2;
   c[1].num = 1;
-  text_op op;
-  text_op_from_components(&op, c, 2);
-  
+  text_op op = text_op_from_components(c, 2);
   
   for (int t = 0; t < 2; t++) {
     gettimeofday(&start, NULL);

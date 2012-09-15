@@ -1,10 +1,14 @@
-//
-//  text-composable.h
-//  OT
-//
-//  Created by Joseph Gentle on 3/09/12.
-//  Copyright (c) 2012 Joseph Gentle. All rights reserved.
-//
+/*
+ * Ops are lists of components which iterate over the document.
+ *
+ * Components are either:
+ *
+ * A number N: Skip N characters in the original document
+ * {INSERT, 'str'}: Insert 'str' at the current position in the document
+ * {DELETE, N}:     Delete N characters at the current pos
+ *
+ * Eg: [3, {INSERT, 'hi'}, 5, {DELETE, 9}]
+ */
 
 #ifndef OT_text_composable_h
 #define OT_text_composable_h
@@ -51,12 +55,16 @@ typedef struct {
   };
 } text_op;
 
-typedef rope text_doc;
-
 void text_op_free(text_op *op);
 
 // Initialize an op from an array of op components. Existing content in dest is ignored.
-void text_op_from_components(text_op *dest, text_op_component components[], size_t num);
+void text_op_from_components2(text_op *dest, text_op_component components[], size_t num);
+
+static inline text_op text_op_from_components(text_op_component components[], size_t num) {
+  text_op result;
+  text_op_from_components2(&result, components, num);
+  return result;
+}
 
 // Create and return a new text op which inserts the specified string at pos.
 text_op text_op_insert(size_t pos, const uint8_t *str);
@@ -64,27 +72,41 @@ text_op text_op_insert(size_t pos, const uint8_t *str);
 // Create a new text op which deletes the specified number of characters
 text_op text_op_delete(size_t pos, size_t amt);
 
-void text_op_clone(text_op *dest, text_op *src);
+// Make a copy of an op.
+void text_op_clone2(text_op *dest, text_op *src);
 
+static inline text_op text_op_clone(text_op *src) {
+  text_op result;
+  text_op_clone2(&result, src);
+  return result;
+}
+
+// Write the op out to standard out.
 void text_op_print(text_op *op);
 
+// Apply an operation to the specified document.
 // returns 0 on success, nonzero on failure.
-int text_op_apply(text_doc *doc, text_op *op);
+int text_op_apply(rope *doc, text_op *op);
 
 // Check if an op is valid and could be applied to the given document. Returns zero on success,
 // nonzero on failure.
-int text_op_check(text_doc *doc, text_op *op);
+int text_op_check(rope *doc, text_op *op);
 
 void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLefthand);
 
-inline static text_op text_op_transform(text_op *op, text_op *other, bool isLefthand) {
+// Transform an op by another op.
+// isLeftHand is used to break ties when both ops insert at the same position in the document.
+static inline text_op text_op_transform(text_op *op, text_op *other, bool isLefthand) {
   text_op result;
   text_op_transform2(&result, op, other, isLefthand);
   return result;
 }
 
 void text_op_compose2(text_op *result, text_op *op1, text_op *op2);
-inline static text_op text_op_compose(text_op *op1, text_op *op2) {
+
+// Compose 2 ops together to produce a single operation. When the result is applied to a document,
+// it has the same effect as applying op1 followed by op2.
+static inline text_op text_op_compose(text_op *op1, text_op *op2) {
   text_op result;
   text_op_compose2(&result, op1, op2);
   return result;
