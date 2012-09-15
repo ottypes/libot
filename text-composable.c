@@ -144,10 +144,8 @@ void text_op_free(text_op *op) {
       }
     }
     free(op->components);
-  } else {
-    if (op->content.type == INSERT) {
-      str_destroy(&op->content.str);
-    }
+  } else if (op->content.type == INSERT) {
+    str_destroy(&op->content.str);
   }
 }
 
@@ -278,53 +276,18 @@ static component_type peek_type(text_op *op, op_iter iter) {
   }
 }
 
-static void init_op(text_op *op) {
+inline static void init_op(text_op *op) {
   op->components = NULL;
   op->skip = 0;
   op->content.type = NONE;
 }
 
-void text_op_transform(text_op *result, text_op *op, text_op *other, bool isLefthand) {
+void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLefthand) {
   init_op(result);
   
   if (op->components == NULL && op->content.type == NONE) {
     return;
   }
-  
-  /*
-  // Most ops are small (a skip then a delete or insert); and most ops don't overlap. These have
-  // been special-cased to improve performance.
-  // Except it doesn't - this is about 2% slower than just using the code below (?!?!)
-  if (op->components == NULL && other->components == NULL
-      && (op->content.type == INSERT
-          // Or I'm deleting and the other op doesn't overlap.
-          || other->skip >= op->skip + op->content.num
-          || other->skip + (other->content.type == DELETE ? other->content.num : 0) <= op->skip)) {
-    // 4 cases.
-    result->content = copy_component(op->content);
-    result->skip = op->skip;
-
-    if (op->content.type == INSERT && other->content.type == INSERT) {
-      if (op->skip > other->skip || (op->skip == other->skip && !isLefthand)) {
-        result->skip += str_num_chars(&other->content.str);
-      }
-    } else if (op->content.type == INSERT && other->content.type == DELETE) {
-      if (op->skip > other->skip) {
-        result->skip -= MIN(other->content.num, op->skip - other->skip);
-      }
-    } else if (op->content.type == DELETE && other->content.type == INSERT) {
-      // The insert doesn't overlap the delete - we checked that in the condition above.
-      if (op->skip >= other->skip) {
-        result->skip += str_num_chars(&other->content.str);
-      }
-    } else if (op->content.type == DELETE && other->content.type == DELETE) {
-      if (op->skip > other->skip) {
-        result->skip -= other->content.num;
-      }
-    }
-    return;
-  }
-  */
   
   op_iter iter = {};
   
@@ -412,7 +375,7 @@ void text_op_transform(text_op *result, text_op *op, text_op *other, bool isLeft
   }
 }
 
-void text_op_compose(text_op *result, text_op *op1, text_op *op2) {
+void text_op_compose2(text_op *result, text_op *op1, text_op *op2) {
   init_op(result);
   op_iter iter = {};
   
