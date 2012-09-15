@@ -29,12 +29,10 @@ void left_hand_inserts() {
   text_op ins1 = text_op_insert(100, (uint8_t *)"abc");
   text_op ins2 = text_op_insert(100, (uint8_t *)"def");
   
-  text_op ins1_;
-  text_op_transform(&ins1_, &ins1, &ins2, false);
+  text_op ins1_ = text_op_transform(&ins1, &ins2, false);
   assert(ins1_.skip == 103);
   
-  text_op ins2_;
-  text_op_transform(&ins2_, &ins2, &ins1, true);
+  text_op ins2_ = text_op_transform(&ins2, &ins1, true);
   //assert(ins2_.skip == 100);
 //  assert(ins2_.components[0].num == 100);
 }
@@ -136,10 +134,8 @@ void random_op_test() {
     assert(text_op_check(doc, &op1) == 0);
     assert(text_op_check(doc, &op2) == 0);
     
-    text_op op1_;
-    text_op_transform(&op1_, &op1, &op2, true);
-    text_op op2_;
-    text_op_transform(&op2_, &op2, &op1, false);
+    text_op op1_ = text_op_transform(&op1, &op2, true);
+    text_op op2_ = text_op_transform(&op2, &op1, false);
     
 //    printf("\n---- transformed ops\n");
 //    text_op_print(&op1_);
@@ -266,8 +262,7 @@ void benchmark_transform() {
     gettimeofday(&start, NULL);
 
     for (long i = 0; i < iterations; i++) {
-      text_op op_;
-      text_op_transform(&op_, &op, &ops[i % 1000], true);
+      text_op op_ = text_op_transform(&op, &ops[i % 1000], true);
       text_op_free(&op);
       op = op_;
     }

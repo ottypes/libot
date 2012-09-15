@@ -75,8 +75,19 @@ int text_op_apply(text_doc *doc, text_op *op);
 // nonzero on failure.
 int text_op_check(text_doc *doc, text_op *op);
 
-void text_op_transform(text_op *result, text_op *op, text_op *other, bool isLefthand);
+void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLefthand);
 
-void text_op_compose(text_op *result, text_op *op1, text_op *op2);
+inline static text_op text_op_transform(text_op *op, text_op *other, bool isLefthand) {
+  text_op result;
+  text_op_transform2(&result, op, other, isLefthand);
+  return result;
+}
+
+void text_op_compose2(text_op *result, text_op *op1, text_op *op2);
+inline static text_op text_op_compose(text_op *op1, text_op *op2) {
+  text_op result;
+  text_op_compose2(&result, op1, op2);
+  return result;
+}
 
 #endif
