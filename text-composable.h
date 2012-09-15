@@ -36,40 +36,47 @@ typedef struct {
 } text_op_component;
 
 typedef struct {
-  size_t num_components;
-  size_t capacity;
-  text_op_component components[];
-  /*
+  text_op_component *components; // NULL or a pointer.
   union {
     struct {
+      // Most ops are just one edit at a location.
+      size_t skip;
+      text_op_component content;
+    };
+    struct {
+      // For more complicated ops, components points to the data and we use these fields.
       size_t num_components;
       size_t capacity;
     };
-    struct {
-      size_t offset;
-      text_op_component content;
-    };
-  };*/
+  };
 } text_op;
 
 typedef rope text_doc;
 
-text_op *text_op_create();
 void text_op_free(text_op *op);
-text_op *text_op_from_components(text_op_component components[], size_t num);
 
-text_op *text_op_clone(text_op *orig);
+// Initialize an op from an array of op components. Existing content in dest is ignored.
+void text_op_from_components(text_op *dest, text_op_component components[], size_t num);
+
+// Create and return a new text op which inserts the specified string at pos.
+text_op text_op_insert(size_t pos, const uint8_t *str);
+
+// Create a new text op which deletes the specified number of characters
+text_op text_op_delete(size_t pos, size_t amt);
+
+void text_op_clone(text_op *dest, text_op *src);
 
 void text_op_print(text_op *op);
 
 // returns 0 on success, nonzero on failure.
 int text_op_apply(text_doc *doc, text_op *op);
 
-// Check if an op is valid and could be applied to the given document.
+// Check if an op is valid and could be applied to the given document. Returns zero on success,
+// nonzero on failure.
 int text_op_check(text_doc *doc, text_op *op);
 
-text_op *text_op_transform(text_op *op, text_op *other, bool isLefthand);
+void text_op_transform(text_op *result, text_op *op, text_op *other, bool isLefthand);
 
-text_op *text_op_compose(text_op *op1, text_op *op2);
+void text_op_compose(text_op *result, text_op *op1, text_op *op2);
 
 #endif

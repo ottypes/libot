@@ -9,10 +9,11 @@
 void sanity() {
   text_op_component insert = {INSERT};
   str_init2(&insert.str, (uint8_t *)"hi there");
-  text_op *op = text_op_from_components(&insert, 1);
+  text_op op;
+  text_op_from_components(&op, &insert, 1);
   
   text_doc *doc = rope_new();
-  text_op_apply(doc, op);
+  text_op_apply(doc, &op);
   
   uint8_t *str = rope_createcstr(doc, NULL);
 
@@ -20,20 +21,33 @@ void sanity() {
 
   free(str);
   
-  text_op_free(op);
+  text_op_free(&op);
   rope_free(doc);
 }
 
+void left_hand_inserts() {
+  text_op ins1 = text_op_insert(100, (uint8_t *)"abc");
+  text_op ins2 = text_op_insert(100, (uint8_t *)"def");
+  
+  text_op ins1_;
+  text_op_transform(&ins1_, &ins1, &ins2, false);
+  assert(ins1_.skip == 103);
+  
+  text_op ins2_;
+  text_op_transform(&ins2_, &ins2, &ins1, true);
+  //assert(ins2_.skip == 100);
+//  assert(ins2_.components[0].num == 100);
+}
 
 // A selection of different unicode characters to pick from.
 // As far as I can tell, there are no unicode characters assigned which
 // take up more than 4 bytes in utf-8.
 static const char *UCHARS[] = {
   "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "1", "2", "3", " ", "\n", // ASCII
-  "©", "¥", "½", // The Latin-1 suppliment (U+80 - U+ff)
-  "Ύ", "Δ", "δ", "Ϡ", // Greek (U+0370 - U+03FF)
-  "←", "↯", "↻", "⇈", // Arrows (U+2190 – U+21FF)
-  "𐆐", "𐆔", "𐆘", "𐆚", // Ancient roman symbols (U+10190 – U+101CF)
+//  "©", "¥", "½", // The Latin-1 suppliment (U+80 - U+ff)
+//  "Ύ", "Δ", "δ", "Ϡ", // Greek (U+0370 - U+03FF)
+//  "←", "↯", "↻", "⇈", // Arrows (U+2190 – U+21FF)
+//  "𐆐", "𐆔", "𐆘", "𐆚", // Ancient roman symbols (U+10190 – U+101CF)
 };
 
 // s is the size of the buffer, including the \0. This function might use
@@ -64,7 +78,7 @@ static float rand_float() {
   return (float)random() / INT32_MAX;
 }
 
-text_op *random_op(rope *doc) {
+void random_op(text_op *dest, rope *doc) {
   uint8_t buffer[100];
   
   size_t remaining_chars = rope_char_count(doc);
@@ -103,28 +117,41 @@ text_op *random_op(rope *doc) {
     
     p *= 0.4;
   }
-  return text_op_from_components(components, num_components);
+  text_op_from_components(dest, components, num_components);
 }
 
 void random_op_test() {
   srandom(1);
   rope *doc = rope_new();
   for (int i = 0; i < 100000; i++) {
-    text_op *op1 = random_op(doc);
-    text_op *op2 = random_op(doc);
+    text_op op1;
+    random_op(&op1, doc);
+    text_op op2;
+    random_op(&op2, doc);
     
-    assert(text_op_check(doc, op1) == 0);
+//    printf("\n---- ops\n");
+//    text_op_print(&op1);
+//    text_op_print(&op2);
     
-    text_op *op1_ = text_op_transform(op1, op2, true);
-    text_op *op2_ = text_op_transform(op2, op1, false);
+    assert(text_op_check(doc, &op1) == 0);
+    assert(text_op_check(doc, &op2) == 0);
+    
+    text_op op1_;
+    text_op_transform(&op1_, &op1, &op2, true);
+    text_op op2_;
+    text_op_transform(&op2_, &op2, &op1, false);
+    
+//    printf("\n---- transformed ops\n");
+//    text_op_print(&op1_);
+//    text_op_print(&op2_);
     
     rope *doc2 = rope_copy(doc);
 
-    text_op_apply(doc, op1);
-    text_op_apply(doc, op2_);
+    text_op_apply(doc, &op1);
+    text_op_apply(doc, &op2_);
     
-    text_op_apply(doc2, op2);
-    text_op_apply(doc2, op1_);
+    text_op_apply(doc2, &op2);
+    text_op_apply(doc2, &op1_);
     
     uint8_t *doc1_str = rope_createcstr(doc, NULL);
     uint8_t *doc2_str = rope_createcstr(doc2, NULL);
@@ -134,10 +161,10 @@ void random_op_test() {
     free(doc2_str);
     
     rope_free(doc2);
-    text_op_free(op1);
-    text_op_free(op2);
-    text_op_free(op1_);
-    text_op_free(op2_);
+    text_op_free(&op1);
+    text_op_free(&op2);
+    text_op_free(&op1_);
+    text_op_free(&op2_);
   }
   rope_free(doc);
 }
@@ -163,7 +190,7 @@ void benchmark_apply() {
       rope_insert(doc, 0, (uint8_t *)"a");
     }
 
-    text_op *ops[1000];
+    text_op ops[1000];
     for (int i = 0; i < 1000; i++) {
       text_op_component c[2] = {{SKIP}};
       c[0].num = random() % doclen + 1;
@@ -175,7 +202,7 @@ void benchmark_apply() {
         c[1].type = DELETE;
         c[1].num = 1;
       }
-      ops[i] = text_op_from_components(c, 2);
+      text_op_from_components(&ops[i], c, 2);
     }
     
     for (int t = 0; t < 1; t++) {
@@ -183,7 +210,7 @@ void benchmark_apply() {
       gettimeofday(&start, NULL);
       
       for (long i = 0; i < iterations; i++) {
-        text_op_apply(doc, ops[i % 1000]);
+        text_op_apply(doc, &ops[i % 1000]);
       }
       
       gettimeofday(&end, NULL);
@@ -195,7 +222,7 @@ void benchmark_apply() {
     }
     
     for (unsigned int i = 0; i < 1000; i++) {
-      text_op_free(ops[i]);
+      text_op_free(&ops[i]);
     }
     rope_free(doc);
   }
@@ -204,7 +231,7 @@ void benchmark_apply() {
 void benchmark_transform() {
   printf("Benchmarking transform...\n");
   
-  long iterations = 20000000;
+  long iterations = 200000000;
   
   struct timeval start, end;
   
@@ -213,7 +240,7 @@ void benchmark_transform() {
   
   int doclen = 10000;
   
-  text_op *ops[1000];
+  text_op ops[1000];
   for (int i = 0; i < 1000; i++) {
     text_op_component c[2] = {{SKIP}};
     c[0].num = random() % doclen + 1;
@@ -225,21 +252,23 @@ void benchmark_transform() {
       c[1].type = DELETE;
       c[1].num = 1;
     }
-    ops[i] = text_op_from_components(c, 2);
+    text_op_from_components(&ops[i], c, 2);
   }
 
   text_op_component c[2] = {{SKIP}, {DELETE}};
   c[0].num = doclen / 2;
   c[1].num = 1;
-  text_op *op = text_op_from_components(c, 2);
+  text_op op;
+  text_op_from_components(&op, c, 2);
   
   
   for (int t = 0; t < 2; t++) {
     gettimeofday(&start, NULL);
 
     for (long i = 0; i < iterations; i++) {
-      text_op *op_ = text_op_transform(op, ops[i % 1000], true);
-      text_op_free(op);
+      text_op op_;
+      text_op_transform(&op_, &op, &ops[i % 1000], true);
+      text_op_free(&op);
       op = op_;
     }
   
@@ -253,17 +282,18 @@ void benchmark_transform() {
   }
 
   for (int i = 0; i < 1000; i++) {
-    text_op_free(ops[i]);
+    text_op_free(&ops[i]);
   }
-  text_op_free(op);
+  text_op_free(&op);
 }
 
 
 int main() {
   sanity();
+  left_hand_inserts();
   random_op_test();
-  benchmark_apply();
   
+//  benchmark_apply();
   benchmark_transform();
   return 0;
 }
