@@ -25,12 +25,10 @@ typedef enum {
 	SKIP = 1,
 	INSERT = 3,
 	DELETE = 4,
-} component_type;
-
-#define INLINE_STRING_LEN 8
+} text_op_component_type;
 
 typedef struct {
-	component_type type;
+	text_op_component_type type;
 	union {
     // For skips and deletes
 		size_t num;
@@ -55,16 +53,11 @@ typedef struct {
   };
 } text_op;
 
-void text_op_free(text_op *op);
-
-// Initialize an op from an array of op components. Existing content in dest is ignored.
 void text_op_from_components2(text_op *dest, text_op_component components[], size_t num);
+void text_op_clone2(text_op *dest, text_op *src);
+void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLefthand);
+void text_op_compose2(text_op *result, text_op *op1, text_op *op2);
 
-static inline text_op text_op_from_components(text_op_component components[], size_t num) {
-  text_op result;
-  text_op_from_components2(&result, components, num);
-  return result;
-}
 
 // Create and return a new text op which inserts the specified string at pos.
 text_op text_op_insert(size_t pos, const uint8_t *str);
@@ -72,9 +65,16 @@ text_op text_op_insert(size_t pos, const uint8_t *str);
 // Create a new text op which deletes the specified number of characters
 text_op text_op_delete(size_t pos, size_t amt);
 
-// Make a copy of an op.
-void text_op_clone2(text_op *dest, text_op *src);
+void text_op_free(text_op *op);
 
+// Initialize an op from an array of op components. Existing content in dest is ignored.
+static inline text_op text_op_from_components(text_op_component components[], size_t num) {
+  text_op result;
+  text_op_from_components2(&result, components, num);
+  return result;
+}
+
+// Make a copy of an op.
 static inline text_op text_op_clone(text_op *src) {
   text_op result;
   text_op_clone2(&result, src);
@@ -92,8 +92,6 @@ int text_op_apply(rope *doc, text_op *op);
 // nonzero on failure.
 int text_op_check(rope *doc, text_op *op);
 
-void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLefthand);
-
 // Transform an op by another op.
 // isLeftHand is used to break ties when both ops insert at the same position in the document.
 static inline text_op text_op_transform(text_op *op, text_op *other, bool isLefthand) {
@@ -101,8 +99,6 @@ static inline text_op text_op_transform(text_op *op, text_op *other, bool isLeft
   text_op_transform2(&result, op, other, isLefthand);
   return result;
 }
-
-void text_op_compose2(text_op *result, text_op *op1, text_op *op2);
 
 // Compose 2 ops together to produce a single operation. When the result is applied to a document,
 // it has the same effect as applying op1 followed by op2.

@@ -210,7 +210,8 @@ typedef struct {
 
 #define MIN(x,y) ((x) > (y) ? (y) : (x))
 
-static text_op_component take(text_op *op, op_iter *iter, size_t max_len, component_type indivisible_type) {
+static text_op_component take(text_op *op, op_iter *iter, size_t max_len,
+      text_op_component_type indivisible_type) {
   // Faster or slower with a pointer?
   text_op_component e;
   
@@ -266,7 +267,7 @@ static text_op_component take(text_op *op, op_iter *iter, size_t max_len, compon
   return e;
 }
 
-inline static component_type peek_type(text_op *op, op_iter iter) {
+inline static text_op_component_type peek_type(text_op *op, op_iter iter) {
   if (op->components) {
     return iter.idx < op->num_components ? op->components[iter.idx].type : NONE;
   } else {
