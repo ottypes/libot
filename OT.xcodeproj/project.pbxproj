@@ -195,7 +195,7 @@
 		FD5DA46215F0474E00C631B9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0440;
+				LastUpgradeCheck = 0450;
 				ORGANIZATIONNAME = "Joseph Gentle";
 			};
 			buildConfigurationList = FD5DA46515F0474E00C631B9 /* Build configuration list for PBXProject "OT" */;
@@ -326,6 +326,7 @@
 		FD5DA47015F0474E00C631B9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = lib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -334,6 +335,7 @@
 		FD5DA47115F0474E00C631B9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = lib;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
