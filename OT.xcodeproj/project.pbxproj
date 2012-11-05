@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FD1962AE15F37CE000681603 /* utf8.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962AD15F37CE000681603 /* utf8.h */; };
+		FD1962AE15F37CE000681603 /* utf8.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962AD15F37CE000681603 /* utf8.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FD1962B015F37CE800681603 /* utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = FD1962AF15F37CE800681603 /* utf8.c */; };
 		FD1962B315F37F7B00681603 /* str.c in Sources */ = {isa = PBXBuildFile; fileRef = FD1962B115F37F7B00681603 /* str.c */; };
-		FD1962B415F37F7B00681603 /* str.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962B215F37F7B00681603 /* str.h */; };
-		FD1962B815F479A500681603 /* text-composable.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962B715F479A500681603 /* text-composable.h */; };
+		FD1962B415F37F7B00681603 /* str.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962B215F37F7B00681603 /* str.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FD1962B815F479A500681603 /* text-composable.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962B715F479A500681603 /* text-composable.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FD401C4015F0F058007CA766 /* text-composable.c in Sources */ = {isa = PBXBuildFile; fileRef = FD401C3F15F0F058007CA766 /* text-composable.c */; };
 		FD5DA4A215F04AA100C631B9 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = FD5DA49215F047EA00C631B9 /* test.c */; };
 		FD5DA4A515F04AD600C631B9 /* libOT.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FD5DA46B15F0474E00C631B9 /* libOT.a */; };
@@ -298,7 +298,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
-				USER_HEADER_SEARCH_PATHS = ../librope;
+				USER_HEADER_SEARCH_PATHS = "\"$(TARGET_BUILD_DIR)/usr/local/include\"";
 			};
 			name = Debug;
 		};
@@ -319,7 +319,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				SDKROOT = macosx;
-				USER_HEADER_SEARCH_PATHS = ../librope;
+				USER_HEADER_SEARCH_PATHS = "\"$(TARGET_BUILD_DIR)/usr/local/include\"";
 			};
 			name = Release;
 		};
