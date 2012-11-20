@@ -172,6 +172,115 @@ void text_op_from_components2(text_op *dest, text_op_component components[], siz
   }
 }
 
+#define CONSUME_BYTES(into, type) if(bytes_remaining < sizeof(type)) return -1; \
+  else {\
+    (into) = *(type *)bytes;\
+    bytes_remaining -= sizeof(type); \
+    bytes += sizeof(type); \
+  }
+
+ssize_t text_op_from_bytes(text_op *dest, void *bytes, size_t num_bytes) {
+  if (num_bytes < sizeof(uint16_t) || bytes == NULL)
+    return -1;
+  
+  size_t bytes_remaining = num_bytes;
+  
+  dest->components = NULL;
+  dest->skip = 0;
+  dest->content.type = NONE;
+  
+  // Bytes are:
+  // - 2 bytes = num components.
+  // - num components of:
+  //   - 1 byte for type
+  //   - uint32_t num or str depending on type
+  
+  int num_components;
+  CONSUME_BYTES(num_components, uint16_t);
+  
+  // num_components might be 0 for a no-op.
+  
+  for (; num_components; num_components--) {
+    // Read a component
+    text_op_component component;
+    CONSUME_BYTES(component.type, uint8_t);
+    
+    switch (component.type) {
+      case SKIP:
+      case DELETE:
+        CONSUME_BYTES(component.num, uint32_t);
+        break;
+      case INSERT: {
+        size_t len = strnlen(bytes, bytes_remaining);
+        if (len == bytes_remaining) {
+          // Expected a null character at the end of the string
+          return -1;
+        } else {
+          str_init3(&component.str, bytes, len, strlen_utf8(bytes));
+          // Ignore the \0 as well.
+          bytes += len + 1;
+          bytes_remaining -= len + 1;
+        }
+        break;
+      }
+      default:
+        // Unknown type.
+        return -1;
+    }
+    
+    append(dest, component);
+    if (component.type == INSERT) {
+      str_destroy(&component.str);
+    }
+  }
+  
+  return num_bytes - bytes_remaining;
+}
+
+#undef CONSUME_BYTES
+
+static void write_component(const text_op_component component, write_fn write, void *user) {
+  uint8_t type = component.type;
+  write((void *)&type, 1, user);
+  if (component.type == INSERT) {
+    // Write the string including the \0.
+    write((void *)str_content(&component.str), str_num_bytes(&component.str) + 1, user);
+  } else {
+    write((void *)&component.num, 4, user);
+  }
+}
+
+void text_op_to_bytes(text_op *op, write_fn write, void *user) {
+  uint16_t num;
+  if (op->components) {
+    assert(op->num_components < UINT16_MAX);
+    num = op->num_components;
+    write((void *)&num, sizeof(uint16_t), user);
+    for (int i = 0; i < op->num_components; i++) {
+      write_component(op->components[i], write, user);
+    }
+  } else {
+    if (op->skip) {
+      num = 2;
+      write((void *)&num, sizeof(uint16_t), user);
+      text_op_component skip = {SKIP};
+      skip.num = op->skip;
+      write_component(skip, write, user);
+      write_component(op->content, write, user);
+    } else {
+      if (op->content.type == NONE) {
+        // Its an empty op. Just say there's 0 components and be done with it.
+        num = 0;
+        write((void *)&num, sizeof(uint16_t), user);
+      } else {
+        num = 1;
+        write((void *)&num, sizeof(uint16_t), user);
+        write_component(op->content, write, user);
+      }
+    }
+  }
+}
+
 static void component_print(text_op_component component) {
 	switch (component.type) {
 		case SKIP:

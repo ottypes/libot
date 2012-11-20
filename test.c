@@ -194,6 +194,65 @@ void random_op_test() {
   rope_free(doc);
 }
 
+typedef struct {
+  void *bytes;
+  size_t num;
+  size_t capacity;
+} buffer;
+
+void append(void *bytes, size_t num, void *buf_) {
+  buffer *buf = (buffer *)buf_;
+  
+  while (num + buf->num >= buf->capacity) {
+    if (buf->capacity) {
+      buf->capacity *= 2;
+    } else {
+      buf->capacity = 16;
+    }
+    buf->bytes = realloc(buf->bytes, buf->capacity);
+  }
+  memcpy(&buf->bytes[buf->num], bytes, num);
+  buf->num += num;
+}
+
+void serialize_deserialze() {
+  srandom(5);
+  rope *doc = rope_new_with_utf8((uint8_t *)"Hi there!! OMG strings rock.");
+  
+  buffer buf = {};
+  for (int i = 0; i < 100000; i++) {
+    text_op op = random_op(doc);
+    
+    buf.num = 0;
+    text_op_to_bytes(&op, append, &buf);
+    
+    text_op op_copy;
+    ssize_t size = text_op_from_bytes(&op_copy, buf.bytes, buf.num);
+    assert(size > 0);
+    assert(size == buf.num);
+    
+    // Now op and op_copy should be the same.
+    rope *doc2 = rope_copy(doc);
+    
+    text_op_apply(doc, &op);
+    text_op_apply(doc2, &op_copy);
+    
+    uint8_t *doc_str = rope_createcstr(doc, NULL);
+    uint8_t *doc2_str = rope_createcstr(doc2, NULL);
+    
+    assert(strcmp((char *)doc_str, (char *)doc2_str) == 0);
+    
+    // Clean up.
+    free(doc_str);
+    free(doc2_str);
+    text_op_free(&op);
+    text_op_free(&op_copy);
+    rope_free(doc2);
+  }
+  rope_free(doc);
+  free(buf.bytes);
+}
+
 void benchmark_apply() {
   printf("Benchmarking apply...\n");
   
@@ -309,12 +368,11 @@ void benchmark_transform() {
   text_op_free(&op);
 }
 
-
 int main() {
   sanity();
   left_hand_inserts();
+  serialize_deserialze();
   random_op_test();
-  
   benchmark_apply();
   benchmark_transform();
   return 0;
