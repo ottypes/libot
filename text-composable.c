@@ -576,7 +576,7 @@ void text_op_compose2(text_op *result, text_op *op1, text_op *op2) {
 }
 
 
-int text_op_check(rope *doc, text_op *op) {
+int text_op_check(rope *doc, const text_op *op) {
   size_t doc_length = rope_char_count(doc);
   size_t pos = 0;
   

@@ -97,7 +97,7 @@ int text_op_apply(rope *doc, text_op *op);
 
 // Check if an op is valid and could be applied to the given document. Returns zero on success,
 // nonzero on failure.
-int text_op_check(rope *doc, text_op *op);
+int text_op_check(rope *doc, const text_op *op);
 
 // Transform an op by another op.
 // isLeftHand is used to break ties when both ops insert at the same position in the document.
