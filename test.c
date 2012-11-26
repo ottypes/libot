@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <assert.h>
 #include "text-composable.h"
+#include "str.h"
 
 void sanity() {
   text_op_component insert = {INSERT};
@@ -253,11 +254,37 @@ void serialize_deserialze() {
   free(buf.bytes);
 }
 
+void benchmark_string() {
+  printf("Benchmarking string copy\n");
+  
+//  long iterations = 2000000000;
+  long iterations = 20000000;
+  
+  str s1;
+  str_init2(&s1, (uint8_t *)"Hi there this string is longer than 16 bytes");
+  
+  struct timeval start, end;
+  
+  gettimeofday(&start, NULL);
+  
+  for (long i = 0; i < iterations; i++) {
+    str s2;
+    str_init_with_copy(&s2, &s1);
+    str_destroy(&s2);
+  }
+  
+  gettimeofday(&end, NULL);
+  
+  double elapsedTime = end.tv_sec - start.tv_sec;
+  elapsedTime += (end.tv_usec - start.tv_usec) / 1e6;
+  printf("did %ld iterations in %f ms: %f Miter/sec\n",
+         iterations, elapsedTime * 1000, iterations / elapsedTime / 1000000);
+}
+
 void benchmark_apply() {
   printf("Benchmarking apply...\n");
   
   long iterations = 20000000;
-  //  long iterations = 1000000;
   
   struct timeval start, end;
   
@@ -353,8 +380,8 @@ void benchmark_transform() {
       op = op_;
     }
   
-    printf("run %d\n", t);
     gettimeofday(&end, NULL);
+    printf("run %d\n", t);
   
     double elapsedTime = end.tv_sec - start.tv_sec;
     elapsedTime += (end.tv_usec - start.tv_usec) / 1e6;
@@ -373,6 +400,9 @@ int main() {
   left_hand_inserts();
   serialize_deserialze();
   random_op_test();
+  
+//  benchmark_string();
+  
   benchmark_apply();
   benchmark_transform();
   return 0;
