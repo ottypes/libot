@@ -239,7 +239,7 @@ ssize_t text_op_from_bytes(text_op *dest, void *bytes, size_t num_bytes) {
 
 #undef CONSUME_BYTES
 
-static void write_component(const text_op_component component, write_fn write, void *user) {
+static void write_component(const text_op_component component, text_write_fn write, void *user) {
   uint8_t type = component.type;
   write((void *)&type, 1, user);
   if (component.type == INSERT) {
@@ -250,7 +250,7 @@ static void write_component(const text_op_component component, write_fn write, v
   }
 }
 
-void text_op_to_bytes(text_op *op, write_fn write, void *user) {
+void text_op_to_bytes(text_op *op, text_write_fn write, void *user) {
   uint16_t num;
   if (op->components) {
     assert(op->num_components < UINT16_MAX);

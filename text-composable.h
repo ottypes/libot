@@ -58,8 +58,8 @@ void text_op_from_components2(text_op *dest, text_op_component components[], siz
 // Returns bytes read on success, negative on failure.
 ssize_t text_op_from_bytes(text_op *dest, void *bytes, size_t num_bytes);
 
-typedef void (*write_fn)(void *bytes, size_t num, void *user);
-void text_op_to_bytes(text_op *op, write_fn write, void *user);
+typedef void (*text_write_fn)(void *bytes, size_t num, void *user);
+void text_op_to_bytes(text_op *op, text_write_fn write, void *user);
 
 void text_op_clone2(text_op *dest, text_op *src);
 void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLefthand);

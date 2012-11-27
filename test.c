@@ -15,7 +15,7 @@ void sanity() {
   rope *doc = rope_new();
   text_op_apply(doc, &op);
   
-  uint8_t *str = rope_createcstr(doc, NULL);
+  uint8_t *str = rope_create_cstr(doc);
 
   assert(strcmp((char *)str, "hi there") == 0);
 
@@ -151,8 +151,8 @@ void random_op_test() {
     assert(text_op_check(doc2, &op1_) == 0);
     text_op_apply(doc2, &op1_);
     
-    uint8_t *doc1_str = rope_createcstr(doc, NULL);
-    uint8_t *doc2_str = rope_createcstr(doc2, NULL);
+    uint8_t *doc1_str = rope_create_cstr(doc);
+    uint8_t *doc2_str = rope_create_cstr(doc2);
     
     assert(strcmp((char *)doc1_str, (char *)doc2_str) == 0);
     
@@ -170,8 +170,8 @@ void random_op_test() {
     text_op_apply(doc3, &op12);
     text_op_apply(doc4, &op21);
 
-    uint8_t *doc3_str = rope_createcstr(doc3, NULL);
-    uint8_t *doc4_str = rope_createcstr(doc4, NULL);
+    uint8_t *doc3_str = rope_create_cstr(doc3);
+    uint8_t *doc4_str = rope_create_cstr(doc4);
     
     assert(strcmp((char *)doc3_str, (char *)doc4_str) == 0);
     assert(strcmp((char *)doc1_str, (char *)doc3_str) == 0);
@@ -238,8 +238,8 @@ void serialize_deserialze() {
     text_op_apply(doc, &op);
     text_op_apply(doc2, &op_copy);
     
-    uint8_t *doc_str = rope_createcstr(doc, NULL);
-    uint8_t *doc2_str = rope_createcstr(doc2, NULL);
+    uint8_t *doc_str = rope_create_cstr(doc);
+    uint8_t *doc2_str = rope_create_cstr(doc2);
     
     assert(strcmp((char *)doc_str, (char *)doc2_str) == 0);
     
