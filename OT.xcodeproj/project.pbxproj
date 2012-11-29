@@ -11,8 +11,8 @@
 		FD1962B015F37CE800681603 /* utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = FD1962AF15F37CE800681603 /* utf8.c */; };
 		FD1962B315F37F7B00681603 /* str.c in Sources */ = {isa = PBXBuildFile; fileRef = FD1962B115F37F7B00681603 /* str.c */; };
 		FD1962B415F37F7B00681603 /* str.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962B215F37F7B00681603 /* str.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		FD1962B815F479A500681603 /* text-composable.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962B715F479A500681603 /* text-composable.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		FD401C4015F0F058007CA766 /* text-composable.c in Sources */ = {isa = PBXBuildFile; fileRef = FD401C3F15F0F058007CA766 /* text-composable.c */; };
+		FD1962B815F479A500681603 /* text.h in Headers */ = {isa = PBXBuildFile; fileRef = FD1962B715F479A500681603 /* text.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FD401C4015F0F058007CA766 /* text.c in Sources */ = {isa = PBXBuildFile; fileRef = FD401C3F15F0F058007CA766 /* text.c */; };
 		FD5DA4A215F04AA100C631B9 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = FD5DA49215F047EA00C631B9 /* test.c */; };
 		FD5DA4A515F04AD600C631B9 /* libOT.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FD5DA46B15F0474E00C631B9 /* libOT.a */; };
 		FD5DA4A615F04AE100C631B9 /* librope.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FD5DA48D15F047A600C631B9 /* librope.a */; };
@@ -67,8 +67,8 @@
 		FD1962AF15F37CE800681603 /* utf8.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = utf8.c; sourceTree = "<group>"; };
 		FD1962B115F37F7B00681603 /* str.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = str.c; sourceTree = "<group>"; };
 		FD1962B215F37F7B00681603 /* str.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = str.h; sourceTree = "<group>"; };
-		FD1962B715F479A500681603 /* text-composable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "text-composable.h"; sourceTree = "<group>"; };
-		FD401C3F15F0F058007CA766 /* text-composable.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "text-composable.c"; sourceTree = "<group>"; };
+		FD1962B715F479A500681603 /* text.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = text.h; sourceTree = "<group>"; };
+		FD401C3F15F0F058007CA766 /* text.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = text.c; sourceTree = "<group>"; };
 		FD5DA46B15F0474E00C631B9 /* libOT.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libOT.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD5DA48315F047A500C631B9 /* librope.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = librope.xcodeproj; path = ../librope/librope.xcodeproj; sourceTree = "<group>"; };
 		FD5DA49215F047EA00C631B9 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = test.c; sourceTree = "<group>"; };
@@ -107,8 +107,8 @@
 		FD5DA46015F0474E00C631B9 = {
 			isa = PBXGroup;
 			children = (
-				FD1962B715F479A500681603 /* text-composable.h */,
-				FD401C3F15F0F058007CA766 /* text-composable.c */,
+				FD1962B715F479A500681603 /* text.h */,
+				FD401C3F15F0F058007CA766 /* text.c */,
 				FD1962B515F3A8BB00681603 /* test */,
 				FD1962AD15F37CE000681603 /* utf8.h */,
 				FD1962AF15F37CE800681603 /* utf8.c */,
@@ -146,7 +146,7 @@
 			files = (
 				FD1962AE15F37CE000681603 /* utf8.h in Headers */,
 				FD1962B415F37F7B00681603 /* str.h in Headers */,
-				FD1962B815F479A500681603 /* text-composable.h in Headers */,
+				FD1962B815F479A500681603 /* text.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,7 +244,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FD401C4015F0F058007CA766 /* text-composable.c in Sources */,
+				FD401C4015F0F058007CA766 /* text.c in Sources */,
 				FD1962B015F37CE800681603 /* utf8.c in Sources */,
 				FD1962B315F37F7B00681603 /* str.c in Sources */,
 			);
