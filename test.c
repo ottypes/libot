@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <assert.h>
-#include "text-composable.h"
+#include "text.h"
 #include "str.h"
 
 void sanity() {

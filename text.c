@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "text-composable.h"
+#include "text.h"
 
 // Check that the given op has enough space for an additional op component.
 static void ensure_capacity(text_op *op) {
