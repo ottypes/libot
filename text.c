@@ -284,13 +284,13 @@ void text_op_to_bytes(text_op *op, text_write_fn write, void *user) {
 static void component_print(text_op_component component) {
 	switch (component.type) {
 		case SKIP:
-			printf("Skip   : %lu", component.num);
+			printf("Skip   : %zu", component.num);
 			break;
 		case INSERT:
-			printf("Insert : %lu ('%s')", str_num_chars(&component.str), str_content(&component.str));
+			printf("Insert : %zu ('%s')", str_num_chars(&component.str), str_content(&component.str));
 			break;
 		case DELETE:
-			printf("Delete : %lu", component.num);
+			printf("Delete : %zu", component.num);
 			break;
 		default:
 			break;
@@ -307,7 +307,7 @@ void text_op_print(text_op *op) {
     }
     printf("\n");
   } else {
-    printf("At %lu ", op->skip);
+    printf("At %zu ", op->skip);
     component_print(op->content);
   }
 }
