@@ -8,7 +8,10 @@ all: libot.a
 clean:
 	rm -f libot.a *.o test
 
-libot.a: text.o str.o utf8.o
+$(LIBROPE)/librope.a:
+	$(MAKE) librope.a -C$(LIBROPE)
+
+libot.a: $(LIBROPE)/librope.a text.o str.o utf8.o
 	cp $(LIBROPE)/librope.a libot.a
 	ar -r $@ $+
 
