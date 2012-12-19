@@ -254,6 +254,58 @@ void serialize_deserialze() {
   free(buf.bytes);
 }
 
+void transform_cursor() {
+  text_op ins = text_op_insert(10, (uint8_t *)"oh hi");
+  text_op del = text_op_delete(25, 20);
+  text_op op = text_op_compose(&ins, &del);
+  // The op skips 10, inserts 5 characters, skips another 10 then deletes 20 characters.
+    
+  // A cursor at the start of the inserted text shouldn't move.
+  assert(text_op_transform_cursor(10, &op, false) == 10);
+  
+  // Unless its your cursor.
+  assert(text_op_transform_cursor(10, &ins, true) == 15);
+  
+  // Any character inside the deleted region should move to the start of the region.
+  assert(text_op_transform_cursor(25, &del, false) == 25);
+  assert(text_op_transform_cursor(35, &del, false) == 25);
+  assert(text_op_transform_cursor(45, &del, false) == 25);
+
+  assert(text_op_transform_cursor(25, &del, true) == 25);
+  assert(text_op_transform_cursor(35, &del, true) == 25);
+  assert(text_op_transform_cursor(45, &del, true) == 25);
+  
+  // Cursors before the deleted region are uneffected
+  assert(text_op_transform_cursor(10, &del, false) == 10);
+  
+  // Cursors past the end of the deleted region get pulled back.
+  assert(text_op_transform_cursor(55, &del, false) == 35);
+  
+  // Your cursor always teleports to the end of the last insert or the deletion site.
+  assert(text_op_transform_cursor(0, &ins, true) == 15);
+  assert(text_op_transform_cursor(100, &ins, true) == 15);
+  assert(text_op_transform_cursor(0, &del, true) == 25);
+  assert(text_op_transform_cursor(100, &del, true) == 25);
+
+  // More complicated cases
+  assert(text_op_transform_cursor(0, &op, false) == 0);
+  assert(text_op_transform_cursor(100, &op, false) == 85);
+  assert(text_op_transform_cursor(10, &op, false) == 10);
+  assert(text_op_transform_cursor(11, &op, false) == 16);
+  
+  assert(text_op_transform_cursor(20, &op, false) == 25);
+  assert(text_op_transform_cursor(30, &op, false) == 25);
+  assert(text_op_transform_cursor(40, &op, false) == 25);
+  assert(text_op_transform_cursor(41, &op, false) == 26);
+
+  assert(text_op_transform_cursor(0, &op, true) == 25);
+  assert(text_op_transform_cursor(100, &op, true) == 25);
+  
+  text_op_free(&ins);
+  text_op_free(&del);
+  text_op_free(&op);
+}
+
 void benchmark_string() {
   printf("Benchmarking string copy\n");
   
@@ -399,6 +451,8 @@ int main() {
   sanity();
   left_hand_inserts();
   serialize_deserialze();
+  transform_cursor();
+  
   random_op_test();
   
 //  benchmark_string();

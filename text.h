@@ -115,4 +115,8 @@ static inline text_op text_op_compose(text_op *op1, text_op *op2) {
   return result;
 }
 
+// Transform a cursor by an operation. is_own_op is set if the operation was sent by the cursor's
+// owner.
+size_t text_op_transform_cursor(size_t cursor, text_op *op, bool is_own_op);
+
 #endif
