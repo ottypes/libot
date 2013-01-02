@@ -21,10 +21,10 @@
 #include "rope.h"
 
 typedef enum {
-	NONE = 0,
-	SKIP = 1,
-	INSERT = 3,
-	DELETE = 4,
+	TEXT_OP_NONE = 0,
+	TEXT_OP_SKIP = 1,
+	TEXT_OP_INSERT = 3,
+	TEXT_OP_DELETE = 4,
 } text_op_component_type;
 
 typedef struct {

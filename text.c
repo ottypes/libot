@@ -10,11 +10,11 @@
 
 // Check that the given op has enough space for an additional op component.
 static void ensure_capacity(text_op *op) {
-  if (op->components == NULL && op->content.type != NONE) {
+  if (op->components == NULL && op->content.type != TEXT_OP_NONE) {
     // Grow the op into a big op.
     text_op_component *components = op->components = malloc(sizeof(text_op_component) * 4);
     if (op->skip) {
-      components[0].type = SKIP;
+      components[0].type = TEXT_OP_SKIP;
       components[0].num = op->skip;
       components[1] = op->content;
       op->num_components = 2;
@@ -31,10 +31,10 @@ static void ensure_capacity(text_op *op) {
 
 // Clone a component. This is only hard because long inserts need allocing.
 static text_op_component copy_component(const text_op_component old) {
-  if (old.type != INSERT) {
+  if (old.type != TEXT_OP_INSERT) {
     return old;
   } else {
-    text_op_component c = {INSERT};
+    text_op_component c = {TEXT_OP_INSERT};
     str_init_with_copy(&c.str, &old.str);
     return c;
   }
@@ -42,25 +42,25 @@ static text_op_component copy_component(const text_op_component old) {
 
 // Append the specified component to the end of the op.
 static void append(text_op *op, const text_op_component c) {
-  if (c.type == NONE
-      || ((c.type == SKIP || c.type == DELETE) && c.num == 0)
-      || (c.type == INSERT && !c.str.mem && c.str.chars[0] == '\0')) {
+  if (c.type == TEXT_OP_NONE
+      || ((c.type == TEXT_OP_SKIP || c.type == TEXT_OP_DELETE) && c.num == 0)
+      || (c.type == TEXT_OP_INSERT && !c.str.mem && c.str.chars[0] == '\0')) {
     // We're not inserting any actual data. Skip.
     return;
   } else if (op->components == NULL) {
     // Small op.
-    if (op->content.type == NONE) {
-      if (c.type == SKIP) {
+    if (op->content.type == TEXT_OP_NONE) {
+      if (c.type == TEXT_OP_SKIP) {
         op->skip += c.num;
       } else {
         op->content = copy_component(c);
       }
       return;
     } else if (op->content.type == c.type) {
-      if (c.type == DELETE) {
+      if (c.type == TEXT_OP_DELETE) {
         op->content.num += c.num;
         return;
-      } else if (c.type == INSERT) {
+      } else if (c.type == TEXT_OP_INSERT) {
         str_append(&op->content.str, &c.str);
         return;
       }
@@ -79,7 +79,7 @@ static void append(text_op *op, const text_op_component c) {
     } else {
       text_op_component *lastC = &op->components[op->num_components - 1];
       if (lastC->type == c.type) {
-        if (c.type == DELETE || c.type == SKIP) {
+        if (c.type == TEXT_OP_DELETE || c.type == TEXT_OP_SKIP) {
           // Extend the delete / skip component.
           lastC->num += c.num;
         } else {
@@ -113,7 +113,7 @@ text_op text_op_insert(size_t pos, const uint8_t *str) {
   text_op op;
   op.components = NULL;
   op.skip = pos;
-  op.content.type = INSERT;
+  op.content.type = TEXT_OP_INSERT;
   str_init2(&op.content.str, str);
   return op;
 }
@@ -122,7 +122,7 @@ text_op text_op_delete(size_t pos, size_t amt) {
   text_op op;
   op.components = NULL;
   op.skip = pos;
-  op.content.type = DELETE;
+  op.content.type = TEXT_OP_DELETE;
   op.content.num = amt;
   return op;
 }
@@ -130,12 +130,12 @@ text_op text_op_delete(size_t pos, size_t amt) {
 void text_op_free(text_op *op) {
   if (op->components) {
     for (int i = 0; i < op->num_components; i++) {
-      if (op->components[i].type == INSERT) {
+      if (op->components[i].type == TEXT_OP_INSERT) {
         str_destroy(&op->components[i].str);
       }
     }
     free(op->components);
-  } else if (op->content.type == INSERT) {
+  } else if (op->content.type == TEXT_OP_INSERT) {
     str_destroy(&op->content.str);
   }
 }
@@ -143,12 +143,12 @@ void text_op_free(text_op *op) {
 // Faster or slower taking a pointer?
 static size_t component_length(const text_op_component *c) {
   switch (c->type) {
-    case NONE:
+    case TEXT_OP_NONE:
       return 0;
-    case SKIP:
-    case DELETE:
+    case TEXT_OP_SKIP:
+    case TEXT_OP_DELETE:
       return c->num;
-    case INSERT:
+    case TEXT_OP_INSERT:
       return str_num_chars(&c->str);
   }
 }
@@ -158,15 +158,15 @@ void text_op_from_components2(text_op *dest, text_op_component components[], siz
   // good initial capacity for the op.
   dest->components = NULL;
   dest->skip = 0;
-  dest->content.type = NONE;
+  dest->content.type = TEXT_OP_NONE;
   
   // Pre-emptively discard skips in the component list.
-  while (num && (components[num - 1].type == SKIP || component_length(&components[num - 1]) == 0)) {
+  while (num && (components[num - 1].type == TEXT_OP_SKIP || component_length(&components[num - 1]) == 0)) {
     num--;
   }
   for (int i = 0; i < num; i++) {
     append(dest, components[i]);
-    if (components[i].type == INSERT) {
+    if (components[i].type == TEXT_OP_INSERT) {
       str_destroy(&components[i].str);
     }
   }
@@ -187,7 +187,7 @@ ssize_t text_op_from_bytes(text_op *dest, void *bytes, size_t num_bytes) {
   
   dest->components = NULL;
   dest->skip = 0;
-  dest->content.type = NONE;
+  dest->content.type = TEXT_OP_NONE;
   
   // Bytes are:
   // - 2 bytes = num components.
@@ -206,11 +206,11 @@ ssize_t text_op_from_bytes(text_op *dest, void *bytes, size_t num_bytes) {
     CONSUME_BYTES(component.type, uint8_t);
     
     switch (component.type) {
-      case SKIP:
-      case DELETE:
+      case TEXT_OP_SKIP:
+      case TEXT_OP_DELETE:
         CONSUME_BYTES(component.num, uint32_t);
         break;
-      case INSERT: {
+      case TEXT_OP_INSERT: {
         size_t len = strnlen(bytes, bytes_remaining);
         if (len == bytes_remaining) {
           // Expected a null character at the end of the string
@@ -229,7 +229,7 @@ ssize_t text_op_from_bytes(text_op *dest, void *bytes, size_t num_bytes) {
     }
     
     append(dest, component);
-    if (component.type == INSERT) {
+    if (component.type == TEXT_OP_INSERT) {
       str_destroy(&component.str);
     }
   }
@@ -242,7 +242,7 @@ ssize_t text_op_from_bytes(text_op *dest, void *bytes, size_t num_bytes) {
 static void write_component(const text_op_component component, text_write_fn write, void *user) {
   uint8_t type = component.type;
   write((void *)&type, 1, user);
-  if (component.type == INSERT) {
+  if (component.type == TEXT_OP_INSERT) {
     // Write the string including the \0.
     write((void *)str_content(&component.str), str_num_bytes(&component.str) + 1, user);
   } else {
@@ -263,12 +263,12 @@ void text_op_to_bytes(text_op *op, text_write_fn write, void *user) {
     if (op->skip) {
       num = 2;
       write((void *)&num, sizeof(uint16_t), user);
-      text_op_component skip = {SKIP};
+      text_op_component skip = {TEXT_OP_SKIP};
       skip.num = op->skip;
       write_component(skip, write, user);
       write_component(op->content, write, user);
     } else {
-      if (op->content.type == NONE) {
+      if (op->content.type == TEXT_OP_NONE) {
         // Its an empty op. Just say there's 0 components and be done with it.
         num = 0;
         write((void *)&num, sizeof(uint16_t), user);
@@ -283,13 +283,13 @@ void text_op_to_bytes(text_op *op, text_write_fn write, void *user) {
 
 static void component_print(text_op_component component) {
 	switch (component.type) {
-		case SKIP:
+		case TEXT_OP_SKIP:
 			printf("Skip   : %zu", component.num);
 			break;
-		case INSERT:
+		case TEXT_OP_INSERT:
 			printf("Insert : %zu ('%s')", str_num_chars(&component.str), str_content(&component.str));
 			break;
-		case DELETE:
+		case TEXT_OP_DELETE:
 			printf("Delete : %zu", component.num);
 			break;
 		default:
@@ -328,7 +328,7 @@ static text_op_component take(text_op *op, op_iter *iter, size_t max_len,
     // idx will be 0 or 1 for the two components.
     if (iter->idx == 0) {
       if (op->skip) {
-        e.type = SKIP;
+        e.type = TEXT_OP_SKIP;
         e.num = op->skip;
       } else {
         iter->idx++;
@@ -356,7 +356,7 @@ static text_op_component take(text_op *op, op_iter *iter, size_t max_len,
     max_len = MIN(max_len, length - iter->offset);
   }
 
-  if (e.type == INSERT) {
+  if (e.type == TEXT_OP_INSERT) {
     if (max_len < length) {
       str_init_with_substring(&e.str, &op->components[iter->idx].str, iter->offset, max_len);
     }
@@ -378,22 +378,23 @@ static text_op_component take(text_op *op, op_iter *iter, size_t max_len,
 
 inline static text_op_component_type peek_type(text_op *op, op_iter iter) {
   if (op->components) {
-    return iter.idx < op->num_components ? op->components[iter.idx].type : NONE;
+    return iter.idx < op->num_components ? op->components[iter.idx].type : TEXT_OP_NONE;
   } else {
-    return iter.idx < 2 ? (iter.idx == 0 && op->skip ? SKIP : op->content.type) : NONE;
+    return iter.idx < 2 ? (iter.idx == 0 && op->skip ? TEXT_OP_SKIP : op->content.type)
+            : TEXT_OP_NONE;
   }
 }
 
 inline static void init_op(text_op *op) {
   op->components = NULL;
   op->skip = 0;
-  op->content.type = NONE;
+  op->content.type = TEXT_OP_NONE;
 }
 
 void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLefthand) {
   init_op(result);
   
-  if (op->components == NULL && op->content.type == NONE) {
+  if (op->components == NULL && op->content.type == TEXT_OP_NONE) {
     return;
   }
   
@@ -405,14 +406,14 @@ void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLef
   text_op_component inline_components[2];
   if (other_components == NULL) {
     other_components = inline_components;
-    if (other->content.type == NONE) {
+    if (other->content.type == TEXT_OP_NONE) {
       num_other_components = 0;
     } else if (other->skip == 0) {
       num_other_components = 1;
       inline_components[0] = other->content;
     } else {
       num_other_components = 2;
-      inline_components[0].type = SKIP;
+      inline_components[0].type = TEXT_OP_SKIP;
       inline_components[0].num = other->skip;
       inline_components[1] = other->content;
     }
@@ -421,57 +422,57 @@ void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLef
   }
   
   for (int i = 0; i < num_other_components; i++) {
-    if (peek_type(op, iter) == NONE) {
+    if (peek_type(op, iter) == TEXT_OP_NONE) {
       break;
     }
     
     switch (other_components[i].type) {
-      case SKIP: {
+      case TEXT_OP_SKIP: {
         size_t num = other_components[i].num;
         
         while (num > 0) {
-          text_op_component c = take(op, &iter, num, INSERT);
-          if (c.type == NONE) {
+          text_op_component c = take(op, &iter, num, TEXT_OP_INSERT);
+          if (c.type == TEXT_OP_NONE) {
             break;
           }
           append(result, c);
-          if (c.type != INSERT) {
+          if (c.type != TEXT_OP_INSERT) {
             num -= c.num;
           }
         }
         break;
       }
-      case INSERT: {
+      case TEXT_OP_INSERT: {
         // If isLeftHand and there's an insert next in the current op, the insert should go first.
-        if (isLefthand && peek_type(op, iter) == INSERT) {
+        if (isLefthand && peek_type(op, iter) == TEXT_OP_INSERT) {
           // The left insert goes first.
-          append(result, take(op, &iter, SIZE_MAX, NONE));
+          append(result, take(op, &iter, SIZE_MAX, TEXT_OP_NONE));
         }
-        if (peek_type(op, iter) == NONE) {
+        if (peek_type(op, iter) == TEXT_OP_NONE) {
           break;
         }
-        text_op_component skip = {SKIP};
+        text_op_component skip = {TEXT_OP_SKIP};
         skip.num = str_num_chars(&other_components[i].str);
         append(result, skip);
         break;
       }
-      case DELETE: {
+      case TEXT_OP_DELETE: {
         size_t num = other_components[i].num;
         
         while (num > 0) {
-          text_op_component c = take(op, &iter, num, INSERT);
+          text_op_component c = take(op, &iter, num, TEXT_OP_INSERT);
           
           switch (c.type) {
-            case NONE:
+            case TEXT_OP_NONE:
               num = 0;
               break;
-            case SKIP:
+            case TEXT_OP_SKIP:
               num -= c.num;
               break;
-            case INSERT:
+            case TEXT_OP_INSERT:
               append(result, c);
               break;
-            case DELETE:
+            case TEXT_OP_DELETE:
               // The delete is unnecessary now.
               num -= c.num;
               break;
@@ -486,12 +487,13 @@ void text_op_transform2(text_op *result, text_op *op, text_op *other, bool isLef
   
   while (iter.idx < (op->components ? op->num_components : 2)) {
     // The op doesn't have skips at the end. Just copy everything.
-    append(result, take(op, &iter, SIZE_MAX, NONE));
+    append(result, take(op, &iter, SIZE_MAX, TEXT_OP_NONE));
   }
   
   // Trim any trailing skips from the result.
   if (result->components) {
-    while (result->num_components && result->components[result->num_components - 1].type == SKIP) {
+    while (result->num_components && result->components[result->num_components - 1].type
+           == TEXT_OP_SKIP) {
       result->num_components--;
     }
   }
@@ -507,8 +509,8 @@ void text_op_compose2(text_op *result, text_op *op1, text_op *op2) {
   text_op_component inline_components[2];
   if (op2_c == NULL) {
     op2_c = inline_components;
-    num_op2_c = op2->content.type == NONE ? 0 : 2;
-    inline_components[0].type = SKIP;
+    num_op2_c = op2->content.type == TEXT_OP_NONE ? 0 : 2;
+    inline_components[0].type = TEXT_OP_SKIP;
     inline_components[0].num = op2->skip;
     inline_components[1] = op2->content;
   } else {
@@ -517,47 +519,47 @@ void text_op_compose2(text_op *result, text_op *op1, text_op *op2) {
   
   for (int i = 0; i < num_op2_c; i++) {    
     switch (op2_c[i].type) {
-      case SKIP: {
+      case TEXT_OP_SKIP: {
         size_t num = op2_c[i].num;
         
         while (num > 0) {
-          text_op_component c = take(op1, &iter, num, DELETE);
-          if (c.type == NONE) {
-            c.type = SKIP;
+          text_op_component c = take(op1, &iter, num, TEXT_OP_DELETE);
+          if (c.type == TEXT_OP_NONE) {
+            c.type = TEXT_OP_SKIP;
             c.num = num;
           }
           append(result, c);
-          if (c.type != DELETE) {
+          if (c.type != TEXT_OP_DELETE) {
             num -= component_length(&c);
           }
         }
         break;
       }
-      case INSERT:
+      case TEXT_OP_INSERT:
         append(result, op2_c[i]);
         break;
-      case DELETE: {
+      case TEXT_OP_DELETE: {
         size_t offset = 0;
         size_t clen = op2_c[i].num;
         while (offset < clen) {
-          text_op_component c = take(op1, &iter, clen - offset, DELETE);
+          text_op_component c = take(op1, &iter, clen - offset, TEXT_OP_DELETE);
           // If its skip, drop it and decrease length.
           // If its insert, check the strings match, drop it and decrease length.
           // If its delete, append it.
           switch (c.type) {
-            case NONE:
+            case TEXT_OP_NONE:
               c.num = clen - offset;
-            case SKIP: {
-              c.type = DELETE;
+            case TEXT_OP_SKIP: {
+              c.type = TEXT_OP_DELETE;
               append(result, c);
               offset += c.num;
               break;
             }
-            case INSERT:
+            case TEXT_OP_INSERT:
               // op1 has inserted text, then op2 deleted it again.
               offset += str_num_chars(&c.str);
               break;
-            case DELETE:
+            case TEXT_OP_DELETE:
               append(result, c);
               break;
           }
@@ -571,7 +573,7 @@ void text_op_compose2(text_op *result, text_op *op1, text_op *op2) {
   
   while (iter.idx < (op1->components ? op1->num_components : 2)) {
     // The op doesn't have skips at the end. Just copy everything.
-    append(result, take(op1, &iter, SIZE_MAX, NONE));
+    append(result, take(op1, &iter, SIZE_MAX, TEXT_OP_NONE));
   }
 }
 
@@ -581,15 +583,15 @@ int text_op_check(const rope *doc, const text_op *op) {
   size_t pos = 0;
   
   if (op->components == NULL) {
-    if (op->content.type == NONE) {
+    if (op->content.type == TEXT_OP_NONE) {
       return 0;
     }
-    if (op->content.type == SKIP) {
+    if (op->content.type == TEXT_OP_SKIP) {
       // If there's content at all, it must be delete or insert.
       return 1;
     }
     
-    size_t len = op->content.type == DELETE ? op->content.num : 0;
+    size_t len = op->content.type == TEXT_OP_DELETE ? op->content.num : 0;
     if (op->skip + len > doc_length) {
       // Can't delete / skip past the end of the document.
       return 1;
@@ -603,7 +605,7 @@ int text_op_check(const rope *doc, const text_op *op) {
         }
       }
       switch (op->components[i].type) {
-        case SKIP: {
+        case TEXT_OP_SKIP: {
           size_t num = op->components[i].num;
           if (num == 0) {
             return 1;
@@ -616,7 +618,7 @@ int text_op_check(const rope *doc, const text_op *op) {
           }
           break;
         }
-        case INSERT: {
+        case TEXT_OP_INSERT: {
           size_t slen = str_num_chars(&op->components[i].str);
           if (slen == 0) {
             return 1;
@@ -625,7 +627,7 @@ int text_op_check(const rope *doc, const text_op *op) {
           pos += slen;
           break;
         }
-        case DELETE: {
+        case TEXT_OP_DELETE: {
           size_t num = op->components[i].num;
           if (num == 0 || doc_length < pos + num) {
             return 1;
@@ -638,7 +640,7 @@ int text_op_check(const rope *doc, const text_op *op) {
           return 1;
       }
     }
-    if (op->num_components && op->components[op->num_components - 1].type == SKIP) {
+    if (op->num_components && op->components[op->num_components - 1].type == TEXT_OP_SKIP) {
       return 1;
     }
   }
@@ -656,14 +658,14 @@ int text_op_apply(rope *doc, text_op *op) {
     size_t pos = 0;
     for (int i = 0; i < op->num_components; i++) {
       switch (op->components[i].type) {
-        case SKIP:
+        case TEXT_OP_SKIP:
           pos += op->components[i].num;
           break;
-        case INSERT:
+        case TEXT_OP_INSERT:
           rope_insert(doc, pos, str_content(&op->components[i].str));
           pos += str_num_chars(&op->components[i].str);
           break;
-        case DELETE:
+        case TEXT_OP_DELETE:
           rope_del(doc, pos, op->components[i].num);
           break;
         default:
@@ -671,9 +673,9 @@ int text_op_apply(rope *doc, text_op *op) {
       }
     }
   } else {
-    if (op->content.type == INSERT) {
+    if (op->content.type == TEXT_OP_INSERT) {
       rope_insert(doc, op->skip, str_content(&op->content.str));
-    } else if (op->content.type == DELETE) {
+    } else if (op->content.type == TEXT_OP_DELETE) {
       rope_del(doc, op->skip, op->content.num);
     }
   }
@@ -691,19 +693,19 @@ static size_t transform_position(size_t cursor, const text_op *op) {
     // I could actually use the op_iter stuff above - but I think its simpler like this.
     for (int i = 0; i < op->num_components && cursor > pos; i++) {
       switch (op->components[i].type) {
-        case SKIP:
+        case TEXT_OP_SKIP:
           if (cursor <= pos + op->components[i].num) {
             return cursor;
           }
           pos += op->components[i].num;
           break;
-        case INSERT: {
+        case TEXT_OP_INSERT: {
           size_t len = str_num_chars(&op->components[i].str);
           pos += len;
           cursor += len;
           break;
         }
-        case DELETE:
+        case TEXT_OP_DELETE:
           cursor -= MIN(op->components[i].num, cursor - pos);
           break;
         default: break;
@@ -713,9 +715,9 @@ static size_t transform_position(size_t cursor, const text_op *op) {
   } else {
     // Tiny op, owned by someone else.
     switch (op->content.type) {
-      case INSERT:
+      case TEXT_OP_INSERT:
         return cursor <= op->skip ? cursor : cursor + str_num_chars(&op->content.str);
-      case DELETE:
+      case TEXT_OP_DELETE:
         return cursor <= op->skip ? cursor : cursor - MIN(op->content.num, cursor - op->skip);
       default: return cursor;
     }
@@ -730,10 +732,10 @@ text_cursor text_op_transform_cursor(text_cursor cursor, const text_op *op, bool
       for (int i = 0; i < op->num_components; i++) {
         switch (op->components[i].type) {
             // We're guaranteed that a valid operation won't end in a skip.
-          case SKIP:
+          case TEXT_OP_SKIP:
             pos += op->components[i].num;
             break;
-          case INSERT:
+          case TEXT_OP_INSERT:
             pos += str_num_chars(&op->components[i].str);
             break;
           default: // Just eat deletes.
@@ -743,8 +745,8 @@ text_cursor text_op_transform_cursor(text_cursor cursor, const text_op *op, bool
     } else {
       if (is_own_op) {
         switch (op->content.type) {
-          case INSERT: pos = op->skip + str_num_chars(&op->content.str); break;
-          case DELETE: pos = op->skip; break;
+          case TEXT_OP_INSERT: pos = op->skip + str_num_chars(&op->content.str); break;
+          case TEXT_OP_DELETE: pos = op->skip; break;
           default:     return cursor;
         }
       }

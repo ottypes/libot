@@ -8,7 +8,7 @@
 #include "str.h"
 
 void sanity() {
-  text_op_component insert = {INSERT};
+  text_op_component insert = {TEXT_OP_INSERT};
   str_init2(&insert.str, (uint8_t *)"hi there");
   text_op op = text_op_from_components(&insert, 1);
   
@@ -89,7 +89,7 @@ text_op random_op(rope *doc) {
   while (num_components < 10 && rand_float() < p) {
     // First a skip (probably).
     if (remaining_chars && rand_float() < 0.9f) {
-      components[num_components].type = SKIP;
+      components[num_components].type = TEXT_OP_SKIP;
       size_t len = random() % remaining_chars;
       components[num_components].num = len;
       remaining_chars -= len;
@@ -101,12 +101,12 @@ text_op random_op(rope *doc) {
       size_t l = 1 + random() % 9;
       l *= l; // random number from 1 to 10, squared. Small inserts are much more frequent than large ones.
       random_string(buffer, l);
-      components[num_components].type = INSERT;
+      components[num_components].type = TEXT_OP_INSERT;
       str_init2(&components[num_components].str, buffer);
       num_components++;
     } else {
       // Delete.
-      components[num_components].type = DELETE;
+      components[num_components].type = TEXT_OP_DELETE;
       size_t len = random() % remaining_chars;
       components[num_components].num = len;
       remaining_chars -= len;
@@ -364,14 +364,14 @@ void benchmark_apply() {
 
     text_op ops[1000];
     for (int i = 0; i < 1000; i++) {
-      text_op_component c[2] = {{SKIP}};
+      text_op_component c[2] = {{TEXT_OP_SKIP}};
       c[0].num = random() % doclen + 1;
       
       if (i % 2) {
-        c[1].type = INSERT;
+        c[1].type = TEXT_OP_INSERT;
         str_init2(&c[1].str, (uint8_t *)"x");
       } else {
-        c[1].type = DELETE;
+        c[1].type = TEXT_OP_DELETE;
         c[1].num = 1;
       }
       text_op_from_components2(&ops[i], c, 2);
@@ -414,20 +414,20 @@ void benchmark_transform() {
   
   text_op ops[1000];
   for (int i = 0; i < 1000; i++) {
-    text_op_component c[2] = {{SKIP}};
+    text_op_component c[2] = {{TEXT_OP_SKIP}};
     c[0].num = random() % doclen + 1;
     
     if (i % 2) {
-      c[1].type = INSERT;
+      c[1].type = TEXT_OP_INSERT;
       str_init2(&c[1].str, (uint8_t *)"x");
     } else {
-      c[1].type = DELETE;
+      c[1].type = TEXT_OP_DELETE;
       c[1].num = 1;
     }
     text_op_from_components2(&ops[i], c, 2);
   }
 
-  text_op_component c[2] = {{SKIP}, {DELETE}};
+  text_op_component c[2] = {{TEXT_OP_SKIP}, {TEXT_OP_DELETE}};
   c[0].num = doclen / 2;
   c[1].num = 1;
   text_op op = text_op_from_components(c, 2);
