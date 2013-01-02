@@ -180,7 +180,7 @@ void text_op_from_components2(text_op *dest, text_op_component components[], siz
   }
 
 ssize_t text_op_from_bytes(text_op *dest, void *bytes, size_t num_bytes) {
-  if (num_bytes < sizeof(uint16_t) || bytes == NULL)
+  if (num_bytes == 0 || bytes == NULL)
     return -1;
   
   size_t bytes_remaining = num_bytes;
