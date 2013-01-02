@@ -299,7 +299,7 @@ static void component_print(text_op_component component) {
 	fflush(stdout);
 }
 
-void text_op_print(text_op *op) {
+void text_op_print(const text_op *op) {
   if (op->components) {
     for (int i = 0; i < op->num_components; i++) {
       printf("%d.\t", i);
@@ -576,7 +576,7 @@ void text_op_compose2(text_op *result, text_op *op1, text_op *op2) {
 }
 
 
-int text_op_check(rope *doc, const text_op *op) {
+int text_op_check(const rope *doc, const text_op *op) {
   size_t doc_length = rope_char_count(doc);
   size_t pos = 0;
   
@@ -680,15 +680,56 @@ int text_op_apply(rope *doc, text_op *op) {
   return 0;
 }
 
-size_t text_op_transform_cursor(size_t cursor, text_op *op, bool is_own_op) {
+int text_cursor_check(const rope *doc, text_cursor cursor) {
+  size_t len = rope_char_count(doc);
+  return cursor.start > len || cursor.end > len;
+}
+
+static size_t transform_position(size_t cursor, const text_op *op) {
   if (op->components) {
     size_t pos = 0;
-    
-    if (is_own_op) {
+    // I could actually use the op_iter stuff above - but I think its simpler like this.
+    for (int i = 0; i < op->num_components && cursor > pos; i++) {
+      switch (op->components[i].type) {
+        case SKIP:
+          if (cursor <= pos + op->components[i].num) {
+            return cursor;
+          }
+          pos += op->components[i].num;
+          break;
+        case INSERT: {
+          size_t len = str_num_chars(&op->components[i].str);
+          pos += len;
+          cursor += len;
+          break;
+        }
+        case DELETE:
+          cursor -= MIN(op->components[i].num, cursor - pos);
+          break;
+        default: break;
+      }
+    }
+    return cursor;
+  } else {
+    // Tiny op, owned by someone else.
+    switch (op->content.type) {
+      case INSERT:
+        return cursor <= op->skip ? cursor : cursor + str_num_chars(&op->content.str);
+      case DELETE:
+        return cursor <= op->skip ? cursor : cursor - MIN(op->content.num, cursor - op->skip);
+      default: return cursor;
+    }
+  }
+}
+
+text_cursor text_op_transform_cursor(text_cursor cursor, const text_op *op, bool is_own_op) {
+  if (is_own_op) {
+    size_t pos = 0;
+    if (op->components) {
       // Just track the position. We'll teleport the cursor to the end anyway.
       for (int i = 0; i < op->num_components; i++) {
         switch (op->components[i].type) {
-          // We're guaranteed that a valid operation won't end in a skip.
+            // We're guaranteed that a valid operation won't end in a skip.
           case SKIP:
             pos += op->components[i].num;
             break;
@@ -699,46 +740,17 @@ size_t text_op_transform_cursor(size_t cursor, text_op *op, bool is_own_op) {
             break;
         }
       }
-      return pos;
     } else {
-      // I could actually use the op_iter stuff above - but I think its simpler like this.
-      for (int i = 0; i < op->num_components && cursor > pos; i++) {
-        switch (op->components[i].type) {
-          case SKIP:
-            if (cursor <= pos + op->components[i].num) {
-              return cursor;
-            }
-            pos += op->components[i].num;
-            break;
-          case INSERT: {
-            size_t len = str_num_chars(&op->components[i].str);
-            pos += len;
-            cursor += len;
-            break;
-          }
-          case DELETE:
-            cursor -= MIN(op->components[i].num, cursor - pos);
-            break;
-          default: break;
+      if (is_own_op) {
+        switch (op->content.type) {
+          case INSERT: pos = op->skip + str_num_chars(&op->content.str); break;
+          case DELETE: pos = op->skip; break;
+          default:     return cursor;
         }
       }
-      return cursor;
     }
+    return text_cursor_make(pos, pos);
   } else {
-    if (is_own_op) {
-      switch (op->content.type) {
-        case INSERT: return op->skip + str_num_chars(&op->content.str);
-        case DELETE: return op->skip;
-        default:     return cursor;
-      }
-    } else { // Tiny op, owned by someone else.
-      switch (op->content.type) {
-        case INSERT:
-          return cursor <= op->skip ? cursor : cursor + str_num_chars(&op->content.str);
-        case DELETE:
-          return cursor <= op->skip ? cursor : cursor - MIN(op->content.num, cursor - op->skip);
-        default: return cursor;
-      }
-    }
+    return text_cursor_make(transform_position(cursor.start, op), transform_position(cursor.end, op));
   }
 }

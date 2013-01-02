@@ -254,53 +254,62 @@ void serialize_deserialze() {
   free(buf.bytes);
 }
 
+static void test_cursor(text_op *op, bool is_own,
+                    size_t start, size_t end, size_t e_start, size_t e_end) {
+  text_cursor result = text_op_transform_cursor(text_cursor_make(start, end), op, is_own);
+  assert(result.start == e_start);
+  assert(result.end == e_end);
+}
+
 void transform_cursor() {
   text_op ins = text_op_insert(10, (uint8_t *)"oh hi");
   text_op del = text_op_delete(25, 20);
   text_op op = text_op_compose(&ins, &del);
   // The op skips 10, inserts 5 characters, skips another 10 then deletes 20 characters.
-    
+  
+#define C(s, e) text_cursor_make(s, e)
   // A cursor at the start of the inserted text shouldn't move.
-  assert(text_op_transform_cursor(10, &op, false) == 10);
+  test_cursor(&op, false, 10, 10, 10, 10);
+  test_cursor(&op, false, 10, 11, 10, 16);
   
   // Unless its your cursor.
-  assert(text_op_transform_cursor(10, &ins, true) == 15);
+  test_cursor(&ins, true, 10, 11, 15, 15);
   
   // Any character inside the deleted region should move to the start of the region.
-  assert(text_op_transform_cursor(25, &del, false) == 25);
-  assert(text_op_transform_cursor(35, &del, false) == 25);
-  assert(text_op_transform_cursor(45, &del, false) == 25);
+  test_cursor(&del, false, 25, 40, 25, 25);
+  test_cursor(&del, false, 35, 50, 25, 30);
+  test_cursor(&del, false, 45, 60, 25, 40);
 
-  assert(text_op_transform_cursor(25, &del, true) == 25);
-  assert(text_op_transform_cursor(35, &del, true) == 25);
-  assert(text_op_transform_cursor(45, &del, true) == 25);
-  
+  test_cursor(&del, true, 25, 40, 25, 25);
+  test_cursor(&del, true, 35, 50, 25, 25);
+  test_cursor(&del, true, 45, 60, 25, 25);
+
   // Cursors before the deleted region are uneffected
-  assert(text_op_transform_cursor(10, &del, false) == 10);
+  test_cursor(&del, false, 10, 25, 10, 25);
   
   // Cursors past the end of the deleted region get pulled back.
-  assert(text_op_transform_cursor(55, &del, false) == 35);
+  test_cursor(&del, false, 55, 60, 35, 40);
   
   // Your cursor always teleports to the end of the last insert or the deletion site.
-  assert(text_op_transform_cursor(0, &ins, true) == 15);
-  assert(text_op_transform_cursor(100, &ins, true) == 15);
-  assert(text_op_transform_cursor(0, &del, true) == 25);
-  assert(text_op_transform_cursor(100, &del, true) == 25);
+  test_cursor(&ins, true,   0, 50, 15, 15);
+  test_cursor(&ins, true, 100, 50, 15, 15);
+  test_cursor(&del, true,   0, 50, 25, 25);
+  test_cursor(&del, true, 100, 50, 25, 25);
 
   // More complicated cases
-  assert(text_op_transform_cursor(0, &op, false) == 0);
-  assert(text_op_transform_cursor(100, &op, false) == 85);
-  assert(text_op_transform_cursor(10, &op, false) == 10);
-  assert(text_op_transform_cursor(11, &op, false) == 16);
-  
-  assert(text_op_transform_cursor(20, &op, false) == 25);
-  assert(text_op_transform_cursor(30, &op, false) == 25);
-  assert(text_op_transform_cursor(40, &op, false) == 25);
-  assert(text_op_transform_cursor(41, &op, false) == 26);
+  test_cursor(&op, false, 0, 5, 0, 5);
+  test_cursor(&op, false, 100, 5, 85, 5);
+  test_cursor(&op, false, 10, 5, 10, 5);
+  test_cursor(&op, false, 11, 5, 16, 5);
 
-  assert(text_op_transform_cursor(0, &op, true) == 25);
-  assert(text_op_transform_cursor(100, &op, true) == 25);
-  
+  test_cursor(&op, false, 20, 5, 25, 5);
+  test_cursor(&op, false, 30, 5, 25, 5);
+  test_cursor(&op, false, 40, 5, 25, 5);
+  test_cursor(&op, false, 41, 5, 26, 5);
+
+  test_cursor(&op, true, 0, 100, 25, 25);
+#undef C
+
   text_op_free(&ins);
   text_op_free(&del);
   text_op_free(&op);

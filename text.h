@@ -30,9 +30,9 @@ typedef enum {
 typedef struct {
 	text_op_component_type type;
 	union {
-    // For skips and deletes
+    // If type is SKIP or DELETE
 		size_t num;
-    
+    // If type is INSERT
     str str;
 	};
 } text_op_component;
@@ -40,11 +40,13 @@ typedef struct {
 typedef struct {
   text_op_component *components; // NULL or a pointer.
   union {
+    // If components is NULL, the op component is stored inline
     struct {
       // Most ops are just one edit at a location.
       size_t skip;
       text_op_component content;
     };
+    // If components is not null, it contains a vector of components
     struct {
       // For more complicated ops, components points to the data and we use these fields.
       size_t num_components;
@@ -52,6 +54,17 @@ typedef struct {
     };
   };
 } text_op;
+
+// This represents an area of text in the document that a user is focussed on. Most of the time the
+// user hasn't really selected anything, and the start and end points just point to wherever the
+// user's cursor is.
+// There is no requirement for the start to be before the end - in HTML parlance, the start
+// refers to the selection anchor (which is where the selection started), and the end represents
+// the selection's focus.
+typedef struct {
+  size_t start;
+  size_t end;
+} text_cursor;
 
 void text_op_from_components2(text_op *dest, text_op_component components[], size_t num);
 
@@ -89,7 +102,7 @@ static inline text_op text_op_clone(text_op *src) {
 }
 
 // Write the op out to standard out.
-void text_op_print(text_op *op);
+void text_op_print(const text_op *op);
 
 // Apply an operation to the specified document.
 // returns 0 on success, nonzero on failure.
@@ -97,7 +110,7 @@ int text_op_apply(rope *doc, text_op *op);
 
 // Check if an op is valid and could be applied to the given document. Returns zero on success,
 // nonzero on failure.
-int text_op_check(rope *doc, const text_op *op);
+int text_op_check(const rope *doc, const text_op *op);
 
 // Transform an op by another op.
 // isLeftHand is used to break ties when both ops insert at the same position in the document.
@@ -115,8 +128,15 @@ static inline text_op text_op_compose(text_op *op1, text_op *op2) {
   return result;
 }
 
+static inline text_cursor text_cursor_make(size_t start, size_t end) {
+  return (text_cursor){start, end};
+}
+
+// Check if a cursor is valid. Returns zero on success, nonzero on failure (the cursor is invalid).
+int text_cursor_check(const rope *doc, text_cursor cursor);
+
 // Transform a cursor by an operation. is_own_op is set if the operation was sent by the cursor's
 // owner.
-size_t text_op_transform_cursor(size_t cursor, text_op *op, bool is_own_op);
+text_cursor text_op_transform_cursor(text_cursor cursor, const text_op *op, bool is_own_op);
 
 #endif
