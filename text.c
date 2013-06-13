@@ -273,21 +273,21 @@ void text_op_to_bytes(text_op *op, text_write_fn write, void *user) {
 }
 
 static void component_print(text_op_component component) {
-	switch (component.type) {
-		case TEXT_OP_SKIP:
-			printf("Skip   : %zu", component.num);
-			break;
-		case TEXT_OP_INSERT:
-			printf("Insert : %zu ('%s')", str_num_chars(&component.str), str_content(&component.str));
-			break;
-		case TEXT_OP_DELETE:
-			printf("Delete : %zu", component.num);
-			break;
-		default:
-			break;
-	}
-	printf("\n");
-	fflush(stdout);
+  switch (component.type) {
+    case TEXT_OP_SKIP:
+      printf("Skip   : %zu", component.num);
+      break;
+    case TEXT_OP_INSERT:
+      printf("Insert : %zu ('%s')", str_num_chars(&component.str), str_content(&component.str));
+      break;
+    case TEXT_OP_DELETE:
+      printf("Delete : %zu", component.num);
+      break;
+    default:
+      break;
+  }
+  printf("\n");
+  fflush(stdout);
 }
 
 void text_op_print(const text_op *op) {
